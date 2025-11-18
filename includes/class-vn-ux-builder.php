@@ -64,6 +64,7 @@ class VN_UX_Builder {
 				'name'     => __( 'VN Gallery', 'vn-lightbox-gallery' ),
 				'category' => __( 'Content' ),
 				'icon'     => 'text',
+				'template' => $this->get_shortcode_template(),
 				'options'  => array(
 					'post_id' => array(
 						'type'        => 'textfield',
@@ -90,5 +91,16 @@ class VN_UX_Builder {
 				),
 			)
 		);
+	}
+
+	/**
+	 * Get shortcode template with proper attribute mapping.
+	 *
+	 * This ensures UX Builder passes all attributes to the shortcode.
+	 *
+	 * @return string Shortcode template.
+	 */
+	private function get_shortcode_template(): string {
+		return '[vn_gallery post_id="{{post_id}}" filters="{{filters}}" show_title="{{show_title}}" class="{{class}}"]';
 	}
 }

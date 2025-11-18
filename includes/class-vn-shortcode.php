@@ -95,13 +95,16 @@ class VN_Shortcode {
 					$custom_classes[] = $sanitized;
 				}
 			}
-		}       // Check if MetaBox is available.
+		}
+
+		// Check if MetaBox is available.
 		if ( ! function_exists( 'rwmb_get_value' ) ) {
 			return $this->render_error( __( 'Lỗi VN Gallery: MetaBox.io không được kích hoạt.', 'vn-lightbox-gallery' ) );
 		}
 
 		// Get gallery data from MetaBox.
-		$gallery_data = rwmb_get_value( $field_id, array( 'object_id' => $post_id ) );
+		// Note: Must specify post type to retrieve data correctly from different post types.
+		$gallery_data = rwmb_get_value( $field_id, array( 'object_id' => $post_id ), $post_id );
 
 		// Debug for admins: Show data info if invalid.
 		if ( $this->should_show_debug( $gallery_data ) ) {

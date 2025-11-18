@@ -18,7 +18,7 @@
 		VIDEO_AUTOPLAY_PARAMS: 'autoplay=1&mute=1&rel=0',
 		SELECTORS: {
 			galleryGrid: '.vn-gallery-grid',
-			galleryItem: 'a.vn-gallery-item',
+			galleryItem: '.gallery-item-wrapper',
 			filterBtn: '.vn-filter-btn',
 			galleryWrapper: '.vn-gallery-wrapper'
 		}
@@ -265,8 +265,14 @@
 				if (filterValue === '*') {
 					$items.show().addClass('vn-item-visible');
 				} else {
+					// Hide all items first
 					$items.hide();
-					$gallery.find(filterValue).show().addClass('vn-item-visible');
+					// Show only wrappers that contain matching items
+					$items.each(function() {
+						if ($(this).find(filterValue).length > 0) {
+							$(this).show().addClass('vn-item-visible');
+						}
+					});
 				}
 			}, 50);
 		},
