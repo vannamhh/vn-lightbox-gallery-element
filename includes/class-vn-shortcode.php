@@ -69,19 +69,33 @@ class VN_Shortcode {
 		// Parse attributes.
 		$atts = shortcode_atts(
 			array(
-				'field'   => self::METABOX_FIELD_ID,
-				'post_id' => 0,
-				'filters' => 'true',
+				'field'      => self::METABOX_FIELD_ID,
+				'post_id'    => 0,
+				'filters'    => 'true',
+				'show_title' => 'false',
+				'class'      => '',
 			),
 			$atts,
 			'vn_gallery'
 		);
 
-		$field_id     = sanitize_text_field( $atts['field'] );
-		$post_id      = ( $atts['post_id'] > 0 ) ? intval( $atts['post_id'] ) : get_the_ID();
-		$show_filters = filter_var( $atts['filters'], FILTER_VALIDATE_BOOLEAN );
+		$field_id     = sanitize_key( $atts['field'] );
+		$post_id      = absint( $atts['post_id'] );
+		$post_id      = ( $post_id > 0 ) ? $post_id : absint( get_the_ID() );
+		$show_filters = rest_sanitize_boolean( $atts['filters'] );
+		$show_title   = rest_sanitize_boolean( $atts['show_title'] );
 
-		// Check if MetaBox is available.
+		// Sanitize multiple classes separated by spaces.
+		$custom_classes = array();
+		if ( ! empty( $atts['class'] ) ) {
+			$classes = explode( ' ', $atts['class'] );
+			foreach ( $classes as $class ) {
+				$sanitized = sanitize_html_class( $class );
+				if ( ! empty( $sanitized ) ) {
+					$custom_classes[] = $sanitized;
+				}
+			}
+		}       // Check if MetaBox is available.
 		if ( ! function_exists( 'rwmb_get_value' ) ) {
 			return $this->render_error( __( 'Lỗi VN Gallery: MetaBox.io không được kích hoạt.', 'vn-lightbox-gallery' ) );
 		}
@@ -89,22 +103,13 @@ class VN_Shortcode {
 		// Get gallery data from MetaBox.
 		$gallery_data = rwmb_get_value( $field_id, array( 'object_id' => $post_id ) );
 
-		// Debug for admins: Always show data info if user is admin.
-		if ( current_user_can( 'manage_options' ) && ( empty( $gallery_data ) || ! is_array( $gallery_data ) ) ) {
-			$debug_info = sprintf(
-				'<strong>VN Gallery Debug Info:</strong><br>Field ID: <code>%s</code><br>Post ID: <code>%s</code><br>Data Type: <code>%s</code><br>Is Array: <code>%s</code><br>Is Empty: <code>%s</code><br>Count: <code>%s</code><hr>Hint: Access <code>?vn_gallery_debug=1</code> for full debug.',
-				$field_id,
-				$post_id,
-				gettype( $gallery_data ),
-				is_array( $gallery_data ) ? 'Yes' : 'No',
-				empty( $gallery_data ) ? 'Yes' : 'No',
-				is_array( $gallery_data ) ? count( $gallery_data ) : 'N/A'
-			);
-			return $this->render_error( $debug_info );
+		// Debug for admins: Show data info if invalid.
+		if ( $this->should_show_debug( $gallery_data ) ) {
+			return $this->render_error( $this->build_debug_info( $field_id, $post_id, $gallery_data ) );
 		}
 
 		// Validate gallery data.
-		if ( empty( $gallery_data ) || ! is_array( $gallery_data ) ) {
+		if ( ! $this->is_valid_gallery_data( $gallery_data ) ) {
 			return $this->render_error(
 				sprintf(
 					/* translators: %s: Field ID */
@@ -121,7 +126,13 @@ class VN_Shortcode {
 		// Start output buffering.
 		ob_start();
 
-		echo '<div class="vn-gallery-wrapper">';
+		// Build wrapper classes.
+		$wrapper_classes = array( 'vn-gallery-wrapper' );
+		if ( ! empty( $custom_classes ) ) {
+			$wrapper_classes = array_merge( $wrapper_classes, $custom_classes );
+		}
+
+		printf( '<div class="%s">', esc_attr( implode( ' ', $wrapper_classes ) ) );
 
 		// Render filter buttons if enabled.
 		if ( $show_filters ) {
@@ -132,19 +143,11 @@ class VN_Shortcode {
 		$gallery_id = 'vn-gallery-' . esc_attr( $post_id . '-' . $field_id );
 		echo '<div class="vn-gallery-grid" id="' . esc_attr( $gallery_id ) . '">';
 
-		// Debug: Log gallery data count for admins.
-		if ( current_user_can( 'manage_options' ) ) {
-			$item_count = is_array( $gallery_data ) ? count( $gallery_data ) : 0;
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			error_log( 'VN Gallery Debug - Post ID: ' . $post_id . ' | Field: ' . $field_id . ' | Item Count: ' . $item_count );
-			if ( $item_count > 0 ) {
-				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log, WordPress.PHP.DevelopmentFunctions.error_log_print_r
-				error_log( 'First Item Structure: ' . print_r( $gallery_data[0], true ) );
-			}
-		}
+		// Debug: Log gallery data for admins.
+		$this->log_gallery_data( $post_id, $field_id, $gallery_data );
 
 		foreach ( $gallery_data as $item ) {
-			$this->render_item( $item );
+			$this->render_item( $item, $show_title );
 		}
 
 		echo '</div>'; // .vn-gallery-grid.
@@ -173,6 +176,68 @@ class VN_Shortcode {
 	}
 
 	/**
+	 * Check if debug info should be shown.
+	 *
+	 * @param mixed $gallery_data Gallery data to check.
+	 * @return bool True if should show debug.
+	 */
+	private function should_show_debug( $gallery_data ): bool {
+		return current_user_can( 'manage_options' ) && ( empty( $gallery_data ) || ! is_array( $gallery_data ) );
+	}
+
+	/**
+	 * Build debug info message.
+	 *
+	 * @param string $field_id Field ID.
+	 * @param int    $post_id Post ID.
+	 * @param mixed  $gallery_data Gallery data.
+	 * @return string Debug info HTML.
+	 */
+	private function build_debug_info( string $field_id, int $post_id, $gallery_data ): string {
+		return sprintf(
+			'<strong>VN Gallery Debug Info:</strong><br>Field ID: <code>%s</code><br>Post ID: <code>%s</code><br>Data Type: <code>%s</code><br>Is Array: <code>%s</code><br>Is Empty: <code>%s</code><br>Count: <code>%s</code><hr>Hint: Access <code>?vn_gallery_debug=1</code> for full debug.',
+			$field_id,
+			$post_id,
+			gettype( $gallery_data ),
+			is_array( $gallery_data ) ? 'Yes' : 'No',
+			empty( $gallery_data ) ? 'Yes' : 'No',
+			is_array( $gallery_data ) ? count( $gallery_data ) : 'N/A'
+		);
+	}
+
+	/**
+	 * Validate gallery data.
+	 *
+	 * @param mixed $gallery_data Gallery data to validate.
+	 * @return bool True if valid.
+	 */
+	private function is_valid_gallery_data( $gallery_data ): bool {
+		return ! empty( $gallery_data ) && is_array( $gallery_data );
+	}
+
+	/**
+	 * Log gallery data for debugging.
+	 *
+	 * @param int    $post_id Post ID.
+	 * @param string $field_id Field ID.
+	 * @param array  $gallery_data Gallery data.
+	 */
+	private function log_gallery_data( int $post_id, string $field_id, array $gallery_data ): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$item_count = count( $gallery_data );
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		error_log( sprintf( 'VN Gallery Debug - Post ID: %d | Field: %s | Item Count: %d', $post_id, $field_id, $item_count ) );
+
+		if ( $item_count > 0 ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log, WordPress.PHP.DevelopmentFunctions.error_log_print_r
+			error_log( 'First Item Structure: ' . print_r( $gallery_data[0], true ) );
+		}
+	}
+
+	/**
 	 * Extract image URL from MetaBox data structure.
 	 *
 	 * MetaBox Builder returns:
@@ -189,11 +254,11 @@ class VN_Shortcode {
 		if ( is_array( $image_data ) && isset( $image_data[0] ) ) {
 			// Get first attachment ID.
 			$attachment_id = $image_data[0];
-			
+
 			// MetaBox returns ID as string, convert to int.
 			if ( is_numeric( $attachment_id ) ) {
 				$attachment_id = (int) $attachment_id;
-				$image_url = wp_get_attachment_image_url( $attachment_id, $size );
+				$image_url     = wp_get_attachment_image_url( $attachment_id, $size );
 				if ( $image_url ) {
 					return $image_url;
 				}
@@ -246,76 +311,151 @@ class VN_Shortcode {
 	 * Render a single gallery item.
 	 *
 	 * @param array $item Gallery item data from MetaBox.
+	 * @param bool  $show_title Whether to show title below item.
 	 */
-	private function render_item( $item ): void {
-		// Validate item data structure.
+	private function render_item( $item, bool $show_title = false ): void {
 		if ( ! is_array( $item ) ) {
 			return;
 		}
 
-		// Get item data using constants.
-		$item_type     = $item[ self::FIELD_ITEM_TYPE ] ?? 'image';
-		$item_image    = $item[ self::FIELD_ITEM_IMAGE ] ?? array();
-		$video_url     = $item[ self::FIELD_ITEM_VIDEO_URL ] ?? '';
-		$video_thumb   = $item[ self::FIELD_ITEM_THUMBNAIL ] ?? array();
-		$title         = $item[ self::FIELD_ITEM_TITLE ] ?? '';
-		$desc          = $item[ self::FIELD_ITEM_DESCRIPTION ] ?? '';
+		$item_data = $this->parse_item_data( $item );
 
-		// Determine if item is video.
+		if ( ! $this->is_valid_item_data( $item_data ) ) {
+			$this->log_skipped_item( $item_data );
+			return;
+		}
+
+		$this->output_item_html( $item_data, $show_title );
+	}
+
+	/**
+	 * Parse item data from MetaBox structure.
+	 *
+	 * @param array $item Raw item data.
+	 * @return array Parsed item data with href, thumbnail, type, title, desc.
+	 */
+	private function parse_item_data( array $item ): array {
+		$item_type = $item[ self::FIELD_ITEM_TYPE ] ?? 'image';
 		$is_video  = ( 'video' === $item_type );
 		$data_type = $is_video ? 'video' : 'image';
 
-		// Set href and thumbnail based on type.
+		// Extract URLs based on type.
 		if ( $is_video ) {
-			// Video: href = video URL, thumbnail = custom thumbnail or video screenshot.
-			$href = ! empty( $video_url ) ? esc_url( $video_url ) : '';
-			// Use custom thumbnail if provided, otherwise try to extract from video URL.
-			$thumbnail_url = ! empty( $video_thumb ) ? $this->extract_image_url( $video_thumb, 'large' ) : '';
-			// Fallback: extract video ID and use default thumbnail (YouTube/Vimeo).
-			if ( empty( $thumbnail_url ) && ! empty( $video_url ) ) {
-				$thumbnail_url = $this->get_video_thumbnail( $video_url );
-			}
+			$video_url     = $item[ self::FIELD_ITEM_VIDEO_URL ] ?? '';
+			$video_thumb   = $item[ self::FIELD_ITEM_THUMBNAIL ] ?? array();
+			$href          = ! empty( $video_url ) ? esc_url( $video_url ) : '';
+			$thumbnail_url = $this->get_video_thumbnail_url( $video_url, $video_thumb );
 		} else {
-			// Image: both href and thumbnail from same field.
+			$item_image    = $item[ self::FIELD_ITEM_IMAGE ] ?? array();
 			$href          = $this->extract_image_url( $item_image, 'full' );
 			$thumbnail_url = $this->extract_image_url( $item_image, 'large' );
 		}
 
-		// Skip if no valid href or thumbnail.
-		if ( empty( $href ) || empty( $thumbnail_url ) ) {
-			// Debug for admins.
-			if ( current_user_can( 'manage_options' ) ) {
-				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log, WordPress.PHP.DevelopmentFunctions.error_log_print_r
-				error_log(
-					sprintf(
-						'VN Gallery Item Skip - Type: %s | HREF: %s | Thumbnail: %s | Image Data: %s',
-						$item_type,
-						empty( $href ) ? 'EMPTY' : 'OK',
-						empty( $thumbnail_url ) ? 'EMPTY' : 'OK',
-						print_r( $item_image, true )
-					)
-				);
+		return array(
+			'href'      => $href,
+			'thumbnail' => $thumbnail_url,
+			'type'      => $data_type,
+			'title'     => $item[ self::FIELD_ITEM_TITLE ] ?? '',
+			'desc'      => $item[ self::FIELD_ITEM_DESCRIPTION ] ?? '',
+			'raw_data'  => $item[ self::FIELD_ITEM_IMAGE ] ?? array(),
+		);
+	}
+
+	/**
+	 * Get video thumbnail URL with fallback logic.
+	 *
+	 * @param string $video_url Video URL.
+	 * @param mixed  $custom_thumbnail Custom thumbnail data.
+	 * @return string Thumbnail URL.
+	 */
+	private function get_video_thumbnail_url( string $video_url, $custom_thumbnail ): string {
+		// Try custom thumbnail first.
+		if ( ! empty( $custom_thumbnail ) ) {
+			$thumbnail = $this->extract_image_url( $custom_thumbnail, 'large' );
+			if ( $thumbnail ) {
+				return $thumbnail;
 			}
+		}
+
+		// Fallback to auto-generated thumbnail.
+		if ( ! empty( $video_url ) ) {
+			return $this->get_video_thumbnail( $video_url );
+		}
+
+		return '';
+	}
+
+	/**
+	 * Validate parsed item data.
+	 *
+	 * @param array $item_data Parsed item data.
+	 * @return bool True if valid.
+	 */
+	private function is_valid_item_data( array $item_data ): bool {
+		return ! empty( $item_data['href'] ) && ! empty( $item_data['thumbnail'] );
+	}
+
+	/**
+	 * Log skipped item for debugging.
+	 *
+	 * @param array $item_data Parsed item data.
+	 */
+	private function log_skipped_item( array $item_data ): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
 
-		// Build CSS classes.
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log, WordPress.PHP.DevelopmentFunctions.error_log_print_r
+		error_log(
+			sprintf(
+				'VN Gallery Item Skip - Type: %s | HREF: %s | Thumbnail: %s | Image Data: %s',
+				$item_data['type'] ?? 'unknown',
+				empty( $item_data['href'] ) ? 'EMPTY' : 'OK',
+				empty( $item_data['thumbnail'] ) ? 'EMPTY' : 'OK',
+				print_r( $item_data['raw_data'] ?? array(), true )
+			)
+		);
+	}
+
+	/**
+	 * Output item HTML markup.
+	 *
+	 * @param array $item_data Parsed and validated item data.
+	 * @param bool  $show_title Whether to show title below item.
+	 */
+	private function output_item_html( array $item_data, bool $show_title = false ): void {
 		$classes = array(
 			'vn-gallery-item',
-			'vn-item-' . $data_type,
+			'vn-item-' . $item_data['type'],
+			'border-image',
 		);
 
-		?>
-		<a 
-			href="<?php echo esc_url( $href ); ?>" 
-			class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>"
-			data-type="<?php echo esc_attr( $data_type ); ?>"
-			data-title="<?php echo esc_attr( $title ); ?>"
-			data-description="<?php echo esc_attr( $desc ); ?>"
-		>
-			<img src="<?php echo esc_url( $thumbnail_url ); ?>" alt="<?php echo esc_attr( $title ); ?>" loading="lazy" />
-		</a>
-		<?php
+		// Open wrapper.
+		echo '<div class="gallery-item-wrapper">';
+
+		// Output link and image.
+		printf(
+			'<a href="%s" class="%s" data-type="%s" data-title="%s" data-description="%s"><div class="image-inner"><img src="%s" alt="%s" loading="lazy" /><div class="vn-youtube-play-button">
+					<button class="btn-icon circle is-xlarge"><i class="icon-play" aria-hidden="true"></i></button></div></div></a>',
+			esc_url( $item_data['href'] ),
+			esc_attr( implode( ' ', $classes ) ),
+			esc_attr( $item_data['type'] ),
+			esc_attr( $item_data['title'] ),
+			esc_attr( $item_data['desc'] ),
+			esc_url( $item_data['thumbnail'] ),
+			esc_attr( $item_data['title'] )
+		);
+
+		// Output title if enabled.
+		if ( $show_title && ! empty( $item_data['title'] ) ) {
+			printf(
+				'<h5 class="gallery-item-title">%s</h5>',
+				esc_html( $item_data['title'] )
+			);
+		}
+
+		// Close wrapper.
+		echo '</div>';
 	}
 
 	/**
@@ -326,15 +466,13 @@ class VN_Shortcode {
 	 * @return string Error HTML or empty string.
 	 */
 	private function render_error( string $message, bool $public_facing = true ): string {
-		// Only show errors to administrators.
 		if ( current_user_can( 'manage_options' ) ) {
 			return sprintf(
 				'<div class="vn-gallery-error" style="color: #d63638; border: 1px solid #d63638; padding: 10px; background: #fff; margin: 10px 0;">%s</div>',
-				esc_html( $message )
+				wp_kses_post( $message )
 			);
 		}
 
-		// Return HTML comment for non-admin users.
 		return $public_facing ? '' : '<!-- ' . esc_html( $message ) . ' -->';
 	}
 }

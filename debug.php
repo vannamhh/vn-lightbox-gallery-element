@@ -15,20 +15,21 @@ add_action( 'template_redirect', 'vn_gallery_debug_output' );
  * Output debug information about gallery data.
  */
 function vn_gallery_debug_output(): void {
-	if ( ! isset( $_GET['vn_gallery_debug'] ) || ! current_user_can( 'manage_options' ) ) {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Debug tool for admins only, read-only operation
+	if ( ! isset( $_GET['vn_gallery_debug'] ) || '1' !== $_GET['vn_gallery_debug'] || ! current_user_can( 'manage_options' ) ) {
 		return;
 	}
 
-	$post_id = get_the_ID();
+	$post_id = absint( get_the_ID() );
 	if ( ! $post_id ) {
-		wp_die( 'No post ID found. Please access this from a post/page URL.' );
+		wp_die( esc_html__( 'No post ID found. Please access this on a post/page.', 'vn-lightbox-gallery' ) );
 	}
 
-	$field_id = 'vn_gallery_items';
+	$field_id = sanitize_key( 'vn_gallery_items' );
 	
 	// Try to get data using rwmb_get_value.
-	$data = function_exists( 'rwmb_get_value' ) 
-		? rwmb_get_value( $field_id, array( 'object_id' => $post_id ) ) 
+	$data = function_exists( 'rwmb_get_value' )
+		? rwmb_get_value( $field_id, array( 'object_id' => $post_id ) )
 		: null;
 
 	?>
@@ -53,9 +54,9 @@ function vn_gallery_debug_output(): void {
 		<h1>VN Gallery Debug Info</h1>
 		
 		<div class="info">
-			<p><strong>Post ID:</strong> <?php echo esc_html( $post_id ); ?></p>
+			<p><strong>Post ID:</strong> <?php echo absint( $post_id ); ?></p>
 			<p><strong>Post Title:</strong> <?php echo esc_html( get_the_title( $post_id ) ); ?></p>
-			<p><strong>Field ID:</strong> <?php echo esc_html( $field_id ); ?></p>
+			<p><strong>Field ID:</strong> <code><?php echo esc_html( $field_id ); ?></code></p>
 			<p><strong>rwmb_get_value():</strong> <?php echo function_exists( 'rwmb_get_value' ) ? '✓ Available' : '✗ Not Available'; ?></p>
 		</div>
 		

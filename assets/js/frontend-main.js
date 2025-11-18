@@ -11,249 +11,307 @@
 	'use strict';
 
 	/**
-	 * Escape HTML for safe output in JavaScript.
-	 *
-	 * @param {string} text - Text to escape.
-	 * @return {string} Escaped text.
+	 * Configuration Constants
 	 */
-	function escHtml(text) {
-		if (!text) return '';
-		return text.toString()
-			.replace(/&/g, '&amp;')
-			.replace(/</g, '&lt;')
-			.replace(/>/g, '&gt;')
-			.replace(/"/g, '&quot;')
-			.replace(/'/g, '&#039;');
-	}
+	var CONFIG = {
+		FLATSOME_INIT_DELAY: 500,
+		VIDEO_AUTOPLAY_PARAMS: 'autoplay=1&mute=1&rel=0',
+		SELECTORS: {
+			galleryGrid: '.vn-gallery-grid',
+			galleryItem: 'a.vn-gallery-item',
+			filterBtn: '.vn-filter-btn',
+			galleryWrapper: '.vn-gallery-wrapper'
+		}
+	};
 
 	/**
-	 * Initialize Magnific Popup for a gallery grid.
-	 *
-	 * @param {jQuery} $galleryElement - The gallery grid element.
+	 * Magnific Popup Configuration
 	 */
-	function initMagnificPopup($galleryElement) {
-		// Check if Magnific Popup is available.
-		if (!$.fn.magnificPopup) {
-			// Flatsome loads Magnific Popup dynamically, wait for it.
-			if (typeof jQuery.loadMagnificPopup === 'function') {
-				jQuery.loadMagnificPopup().then(function() {
-					initMagnificPopup($galleryElement);
+	var MAGNIFICPOPUP_CONFIG = {
+		baseConfig: {
+			type: 'image',
+			mainClass: 'mfp-fade mfp-img-mobile',
+			removalDelay: 300,
+			closeOnContentClick: false,
+			closeBtnInside: false,
+			fixedContentPos: true
+		},
+		galleryConfig: {
+			enabled: true,
+			navigateByImgClick: true,
+			preload: [0, 1],
+			tPrev: 'Trước (Left arrow)',
+			tNext: 'Tiếp (Right arrow)',
+			tCounter: '%curr% / %total%',
+			arrowMarkup: '<button title="%title%" type="button" class="mfp-arrow mfp-arrow-%dir%"></button>'
+		},
+		imageConfig: {
+			verticalFit: true,
+			tError: '<a href="%url%">Hình ảnh</a> không thể tải.'
+		},
+		markup: {
+			image: '<div class="mfp-figure">' +
+				'<div class="mfp-close"></div>' +
+				'<div class="mfp-img"></div>' +
+				'<div class="mfp-bottom-bar">' +
+				'<div class="mfp-title"></div>' +
+				'<div class="mfp-counter"></div>' +
+				'</div>' +
+				'</div>',
+			iframe: '<div class="mfp-iframe-scaler">' +
+				'<div class="mfp-close"></div>' +
+				'<iframe class="mfp-iframe" frameborder="0" allowfullscreen></iframe>' +
+				'<div class="mfp-bottom-bar">' +
+				'<div class="mfp-title"></div>' +
+				'<div class="mfp-counter"></div>' +
+				'</div>' +
+				'</div>'
+		}
+	};
+
+	/**
+	 * Utility Functions
+	 */
+	var Utils = {
+		/**
+		 * Escape HTML for safe output.
+		 * @param {string} text - Text to escape.
+		 * @return {string} Escaped text.
+		 */
+		escapeHtml: function(text) {
+			if (!text) return '';
+			return text.toString()
+				.replace(/&/g, '&amp;')
+				.replace(/</g, '&lt;')
+				.replace(/>/g, '&gt;')
+				.replace(/"/g, '&quot;')
+				.replace(/'/g, '&#039;');
+		},
+
+		/**
+		 * Build title markup from item data.
+		 * @param {Object} item - Item with title and description.
+		 * @return {string} HTML markup.
+		 */
+		buildTitleMarkup: function(item) {
+			var title = item.title || '';
+			var desc = item.description || '';
+			var output = '';
+			
+			if (title) {
+				output = '<h3>' + this.escapeHtml(title) + '</h3>';
+			}
+			if (desc) {
+				output += '<p>' + this.escapeHtml(desc) + '</p>';
+			}
+			
+			return output;
+		},
+
+		/**
+		 * Extract video ID from URL.
+		 * @param {string} url - Video URL.
+		 * @param {RegExp} pattern - Regex pattern to match.
+		 * @return {string|null} Video ID or null.
+		 */
+		extractVideoId: function(url, pattern) {
+			var match = url.match(pattern);
+			return (match && match[1]) ? match[1] : null;
+		}
+	};
+
+	/**
+	 * Video Platform Patterns
+	 */
+	var VIDEO_PATTERNS = {
+		youtube: {
+			index: 'youtube.com/',
+			id: function(url) {
+				return Utils.extractVideoId(url, /[\?&]v=([^\?&]+)/);
+			},
+			src: '//www.youtube.com/embed/%id%?' + CONFIG.VIDEO_AUTOPLAY_PARAMS
+		},
+		youtu_be: {
+			index: 'youtu.be/',
+			id: function(url) {
+				return Utils.extractVideoId(url, /youtu\.be\/([^\?&]+)/);
+			},
+			src: '//www.youtube.com/embed/%id%?' + CONFIG.VIDEO_AUTOPLAY_PARAMS
+		},
+		vimeo: {
+			index: 'vimeo.com/',
+			id: function(url) {
+				return Utils.extractVideoId(url, /vimeo\.com\/(\d+)/);
+			},
+			src: '//player.vimeo.com/video/%id%?autoplay=1'
+		}
+	};
+
+	/**
+	 * Gallery Module
+	 */
+	var Gallery = {
+		/**
+		 * Build items array from gallery element.
+		 * @param {jQuery} $gallery - Gallery element.
+		 * @return {Array} Items array.
+		 */
+		buildItemsArray: function($gallery) {
+			var items = [];
+			$gallery.find(CONFIG.SELECTORS.galleryItem + ':visible').each(function() {
+				var $item = $(this);
+				items.push({
+					src: $item.attr('href'),
+					type: $item.data('type') === 'video' ? 'iframe' : 'image',
+					title: $item.data('title') || '',
+					description: $item.data('description') || ''
 				});
-			} else {
-				console.error('VN Gallery: Magnific Popup không được tải.');
-			}
-			return;
-		}
-
-		// Destroy existing instance if any
-		$galleryElement.magnificPopup('close');
-		if ($galleryElement.data('magnificPopup')) {
-			$galleryElement.magnificPopup('destroy');
-		}
-		
-		// Remove ALL click handlers from items (including Flatsome's)
-		$galleryElement.find('a.vn-gallery-item').off('click');
-
-		// Build items array to ensure gallery mode works
-		var items = [];
-		$galleryElement.find('a.vn-gallery-item:visible').each(function() {
-			var $this = $(this);
-			var itemType = $this.data('type') === 'video' ? 'iframe' : 'image';
-			items.push({
-				src: $this.attr('href'),
-				type: itemType,
-				title: $this.data('title') || '',
-				description: $this.data('description') || ''
 			});
-		});
+			return items;
+		},
 
-		console.log('VN Gallery: Initializing with', items.length, 'items');
+		/**
+		 * Clean up existing instances.
+		 * @param {jQuery} $gallery - Gallery element.
+		 */
+		cleanup: function($gallery) {
+			$gallery.magnificPopup('close');
+			if ($gallery.data('magnificPopup')) {
+				$gallery.magnificPopup('destroy');
+			}
+			$gallery.find(CONFIG.SELECTORS.galleryItem).off('click');
+			$gallery.find(CONFIG.SELECTORS.galleryItem).off('click.flatsomeLightbox');
+			$gallery.off('click.flatsomeLightbox');
+		},
 
-		// Bind click handler manually to override Flatsome
-		$galleryElement.on('click.vnGallery', 'a.vn-gallery-item', function(e) {
-			e.preventDefault();
-			e.stopPropagation();
-			e.stopImmediatePropagation();
-			
-			var $clicked = $(this);
-			var index = $galleryElement.find('a.vn-gallery-item:visible').index($clicked);
-			
-			console.log('VN Gallery: Clicked item', index);
-			
-			// Open magnificPopup at clicked index
-			$.magnificPopup.open({
+		/**
+		 * Get Magnific Popup configuration.
+		 * @param {Array} items - Gallery items.
+		 * @return {Object} Configuration object.
+		 */
+		getMagnificConfig: function(items) {
+			var config = $.extend({}, MAGNIFICPOPUP_CONFIG.baseConfig, {
 				items: items,
-				type: 'image',
-				mainClass: 'mfp-fade mfp-img-mobile',
-				removalDelay: 300,
-				closeOnContentClick: false,
-				closeBtnInside: false,
-				fixedContentPos: true,
-			gallery: {
-				enabled: true,
-				navigateByImgClick: true,
-				preload: [0, 1],
-				tPrev: 'Trước (Left arrow)',
-				tNext: 'Tiếp (Right arrow)',
-				tCounter: '%curr% / %total%',
-				arrowMarkup: '<button title="%title%" type="button" class="mfp-arrow mfp-arrow-%dir%"></button>'
-			},
-			image: {
-				titleSrc: function(item) {
-					var title = item.el.data('title') || '';
-					var desc = item.el.data('description') || '';
-					var output = '';
-					if (title) {
-						output = '<h3>' + escHtml(title) + '</h3>';
-					}
-					if (desc) {
-						output += '<p>' + escHtml(desc) + '</p>';
-					}
-					return output;
+				gallery: MAGNIFICPOPUP_CONFIG.galleryConfig,
+				image: $.extend({}, MAGNIFICPOPUP_CONFIG.imageConfig, {
+					markup: MAGNIFICPOPUP_CONFIG.markup.image
+				}),
+				iframe: {
+					markup: MAGNIFICPOPUP_CONFIG.markup.iframe,
+					patterns: VIDEO_PATTERNS
 				},
-				verticalFit: true,
-				tError: '<a href="%url%">Hình ảnh</a> không thể tải.',
-				markup: '<div class="mfp-figure">'+
-						'<div class="mfp-close"></div>'+
-						'<div class="mfp-img"></div>'+
-						'<div class="mfp-bottom-bar">'+
-						'<div class="mfp-title"></div>'+
-						'<div class="mfp-counter"></div>'+
-						'</div>'+
-						'</div>'
-			},
-			iframe: {
-				markup: '<div class="mfp-iframe-scaler">'+
-						'<div class="mfp-close"></div>'+
-						'<iframe class="mfp-iframe" frameborder="0" allowfullscreen></iframe>'+
-						'<div class="mfp-bottom-bar">'+
-						'<div class="mfp-title"></div>'+
-						'<div class="mfp-counter"></div>'+
-						'</div>'+
-						'</div>',
-				patterns: {
-					youtube: {
-						index: 'youtube.com/',
-						id: function(url) {
-							var m = url.match(/[\?&]v=([^\?&]+)/);
-							if (!m || !m[1]) return null;
-							return m[1];
-						},
-						src: '//www.youtube.com/embed/%id%?autoplay=1&rel=0'
-					},
-					youtu_be: {
-						index: 'youtu.be/',
-						id: function(url) {
-							var m = url.match(/youtu\.be\/([^\?&]+)/);
-							if (!m || !m[1]) return null;
-							return m[1];
-						},
-						src: '//www.youtube.com/embed/%id%?autoplay=1&rel=0'
-					},
-					vimeo: {
-						index: 'vimeo.com/',
-						id: function(url) {
-							var m = url.match(/vimeo\.com\/(\d+)/);
-							if (!m || !m[1]) return null;
-							return m[1];
-						},
-						src: '//player.vimeo.com/video/%id%?autoplay=1'
+				callbacks: {
+					markupParse: function(template, values, item) {
+						values.title = Utils.buildTitleMarkup(item);
 					}
 				}
-			},
-			callbacks: {
-				elementParse: function(item) {
-					// Item type already set in items array
-					// Just use it directly, no need to parse el
-					console.log('Parsing item:', item.src, 'Type:', item.type);
-				},
-				markupParse: function(template, values, item) {
-					// Get title and description from item data (already stored in items array)
-					var title = item.title || '';
-					var desc = item.description || '';
-					var output = '';
-					
-					if (title) {
-						output = '<h3>' + escHtml(title) + '</h3>';
-					}
-					if (desc) {
-						output += '<p>' + escHtml(desc) + '</p>';
-					}
-					
-					values.title = output;
-				},
-				open: function() {
-					console.log('VN Gallery: Opened', this.index + 1, '/', this.items.length);
-				},
-				change: function() {
-					console.log('VN Gallery: Changed to', this.index + 1, '/', this.items.length);
-				}
-			}
-			}, index); // Pass starting index
-		});
+			});
+			return config;
+		},
 
-		console.log('VN Gallery: Initialized successfully');
-	}
+		/**
+		 * Initialize Magnific Popup.
+		 * @param {jQuery} $gallery - Gallery element.
+		 */
+		init: function($gallery) {
+			var self = this;
+
+			// Check if Magnific Popup is available
+			if (!$.fn.magnificPopup) {
+				if (typeof jQuery.loadMagnificPopup === 'function') {
+					jQuery.loadMagnificPopup().then(function() {
+						self.init($gallery);
+					});
+				}
+				return;
+			}
+
+			// Cleanup existing instances
+			this.cleanup($gallery);
+
+			// Build items array
+			var items = this.buildItemsArray($gallery);
+
+			// Bind click handler
+			var config = this.getMagnificConfig(items);
+			$gallery.on('click.vnGallery', CONFIG.SELECTORS.galleryItem, function(e) {
+				e.preventDefault();
+				e.stopPropagation();
+				e.stopImmediatePropagation();
+				
+				var index = $gallery.find(CONFIG.SELECTORS.galleryItem + ':visible').index($(this));
+				
+				$.magnificPopup.open(config, index);
+			});
+		}
+	};
 
 	/**
-	 * Handle filter button clicks.
+	 * Filter Module
 	 */
-	function initFilters() {
-		$(document).on('click', '.vn-filter-btn', function(e) {
-			e.preventDefault();
+	var Filter = {
+		/**
+		 * Apply filter to gallery.
+		 * @param {jQuery} $gallery - Gallery element.
+		 * @param {string} filterValue - Filter selector or '*' for all.
+		 */
+		apply: function($gallery, filterValue) {
+			var $items = $gallery.find(CONFIG.SELECTORS.galleryItem);
+			
+			// Remove active class and hide all
+			$items.removeClass('vn-item-visible');
+			
+			setTimeout(function() {
+				if (filterValue === '*') {
+					$items.show().addClass('vn-item-visible');
+				} else {
+					$items.hide();
+					$gallery.find(filterValue).show().addClass('vn-item-visible');
+				}
+			}, 50);
+		},
 
-			var $btn = $(this);
-			var $wrapper = $btn.closest('.vn-gallery-wrapper');
-			var $galleryGrid = $wrapper.find('.vn-gallery-grid');
-			var filterValue = $btn.data('filter');
+		/**
+		 * Initialize filter buttons.
+		 */
+		init: function() {
+			$(document).on('click', CONFIG.SELECTORS.filterBtn, function(e) {
+				e.preventDefault();
 
-			// Update active state.
-			$btn.siblings().removeClass('active');
-			$btn.addClass('active');
+				var $btn = $(this);
+				var $wrapper = $btn.closest(CONFIG.SELECTORS.galleryWrapper);
+				var $gallery = $wrapper.find(CONFIG.SELECTORS.galleryGrid);
+				var filterValue = $btn.data('filter');
 
-			// Filter items.
-			if (filterValue === '*') {
-				// Show all items.
-				$galleryGrid.find('.vn-gallery-item').show();
-			} else {
-				// Hide all, then show filtered.
-				$galleryGrid.find('.vn-gallery-item').hide();
-				$galleryGrid.find(filterValue).show();
-			}
+				// Update active state
+				$btn.siblings().removeClass('active');
+				$btn.addClass('active');
 
-			// Reinitialize Magnific Popup with visible items only.
-			if ($.fn.magnificPopup) {
-				$galleryGrid.magnificPopup('destroy');
-				initMagnificPopup($galleryGrid);
-			}
-		});
-	}
+				// Apply filter
+				Filter.apply($gallery, filterValue);
+
+				// Reinitialize gallery
+				if ($.fn.magnificPopup) {
+					$gallery.magnificPopup('destroy');
+					Gallery.init($gallery);
+				}
+			});
+		}
+	};
 
 	/**
-	 * Initialize on document ready.
+	 * Initialize on document ready
 	 */
 	$(document).ready(function() {
-		// Initialize filters.
-		initFilters();
+		// Initialize filters
+		Filter.init();
 
-		// Wait for Flatsome to finish loading, then override
+		// Wait for Flatsome, then initialize galleries
 		setTimeout(function() {
-			$('.vn-gallery-grid').each(function() {
-				var $gallery = $(this);
-				
-				// Remove Flatsome's lightbox handlers
-				$gallery.find('a.vn-gallery-item').off('click.flatsomeLightbox');
-				$gallery.off('click.flatsomeLightbox');
-				
-				// Destroy any existing magnificPopup
-				if ($gallery.data('magnificPopup')) {
-					$gallery.magnificPopup('destroy');
-				}
-				
-				// Initialize our gallery
-				initMagnificPopup($gallery);
+			$(CONFIG.SELECTORS.galleryGrid).each(function() {
+				Gallery.init($(this));
 			});
-		}, 500);
+		}, CONFIG.FLATSOME_INIT_DELAY);
 	});
 
 })(jQuery);
