@@ -1,0 +1,165 @@
+/**
+ * VN Lightbox Gallery Frontend Styles
+ *
+ * @package VN_Lightbox_Gallery
+ * @since 4.0.0
+ */
+
+/* ==========================================================================
+   Gallery Wrapper
+   ========================================================================== */
+
+.vn-gallery-wrapper {
+	margin: 20px 0;
+}
+
+/* ==========================================================================
+   Filter Buttons
+   ========================================================================== */
+
+.vn-gallery-filters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-bottom: 20px;
+	justify-content: center;
+}
+
+.vn-filter-btn {
+	padding: 10px 20px;
+	background: #f5f5f5;
+	border: 2px solid #ddd;
+	border-radius: 4px;
+	color: #333;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	outline: none;
+}
+
+.vn-filter-btn:hover {
+	background: #e0e0e0;
+	border-color: #ccc;
+}
+
+.vn-filter-btn.active {
+	background: #0073aa;
+	border-color: #0073aa;
+	color: #fff;
+}
+
+/* ==========================================================================
+   Gallery Grid
+   ========================================================================== */
+
+.vn-gallery-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+	gap: 15px;
+	padding: 0;
+	margin: 0;
+}
+
+/* Responsive grid adjustments */
+@media (max-width: 768px) {
+	.vn-gallery-grid {
+		grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+		gap: 10px;
+	}
+}
+
+@media (max-width: 480px) {
+	.vn-gallery-grid {
+		grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+		gap: 8px;
+	}
+}
+
+/* ==========================================================================
+   Gallery Items
+   ========================================================================== */
+
+.vn-gallery-item {
+	display: block;
+	position: relative;
+	overflow: hidden;
+	border-radius: 4px;
+	aspect-ratio: 1 / 1;
+	background: #f0f0f0;
+	transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.vn-gallery-item:hover {
+	transform: translateY(-3px);
+	box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.vn-gallery-item img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+	transition: transform 0.3s ease;
+}
+
+.vn-gallery-item:hover img {
+	transform: scale(1.05);
+}
+
+/* Hidden items (filtered out) */
+.vn-gallery-item[style*="display: none"] {
+	display: none !important;
+}
+
+/* Video item indicator */
+.vn-item-video::before {
+	content: '▶';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	font-size: 40px;
+	color: rgba(255, 255, 255, 0.9);
+	background: rgba(0, 0, 0, 0.6);
+	width: 60px;
+	height: 60px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	pointer-events: none;
+	z-index: 1;
+	transition: all 0.3s ease;
+}
+
+.vn-item-video:hover::before {
+	background: rgba(0, 0, 0, 0.8);
+	transform: translate(-50%, -50%) scale(1.1);
+}
+
+/* ==========================================================================
+   Error Messages
+   ========================================================================== */
+
+.vn-gallery-error {
+	color: #d63638;
+	border: 1px solid #d63638;
+	padding: 10px;
+	background: #fff;
+	margin: 10px 0;
+	border-radius: 4px;
+}
+
+/* ==========================================================================
+   Magnific Popup Custom Styles
+   ========================================================================== */
+
+/* Title with description */
+.mfp-title small {
+	display: block;
+	font-size: 12px;
+	color: #aaa;
+	margin-top: 5px;
+	font-weight: normal;
+}
