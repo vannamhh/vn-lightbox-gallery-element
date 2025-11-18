@@ -29,7 +29,6 @@
 	 */
 	var MAGNIFICPOPUP_CONFIG = {
 		baseConfig: {
-			type: 'image',
 			mainClass: 'mfp-fade mfp-img-mobile',
 			removalDelay: 300,
 			closeOnContentClick: false,
@@ -90,22 +89,18 @@
 
 		/**
 		 * Build title markup from item data.
-		 * @param {Object} item - Item with title and description.
-		 * @return {string} HTML markup.
+		 * Only shows description (no title), returns empty string if description is empty.
+		 * @param {Object} item - Item with description.
+		 * @return {string} HTML markup or empty string.
 		 */
 		buildTitleMarkup: function(item) {
-			var title = item.title || '';
 			var desc = item.description || '';
-			var output = '';
 			
-			if (title) {
-				output = '<h3>' + this.escapeHtml(title) + '</h3>';
-			}
 			if (desc) {
-				output += '<p>' + this.escapeHtml(desc) + '</p>';
+				return '<p>' + this.escapeHtml(desc) + '</p>';
 			}
 			
-			return output;
+			return '';
 		},
 
 		/**
@@ -159,12 +154,18 @@
 		buildItemsArray: function($gallery) {
 			var items = [];
 			$gallery.find(CONFIG.SELECTORS.galleryItem + ':visible').each(function() {
-				var $item = $(this);
+				var $wrapper = $(this);
+				var $link = $wrapper.find('a.vn-gallery-item');
+				
+				// Get data-type attribute value
+				var dataType = $link.attr('data-type');
+				var itemType = (dataType === 'video') ? 'iframe' : 'image';
+				
 				items.push({
-					src: $item.attr('href'),
-					type: $item.data('type') === 'video' ? 'iframe' : 'image',
-					title: $item.data('title') || '',
-					description: $item.data('description') || ''
+					src: $link.attr('href'),
+					type: itemType,
+					title: $link.attr('data-title') || '',
+					description: $link.attr('data-description') || ''
 				});
 			});
 			return items;
@@ -179,9 +180,12 @@
 			if ($gallery.data('magnificPopup')) {
 				$gallery.magnificPopup('destroy');
 			}
-			$gallery.find(CONFIG.SELECTORS.galleryItem).off('click');
-			$gallery.find(CONFIG.SELECTORS.galleryItem).off('click.flatsomeLightbox');
+			// Unbind all possible Flatsome and plugin events
+			$gallery.off('click.vnGallery');
 			$gallery.off('click.flatsomeLightbox');
+			$gallery.find('a.vn-gallery-item').off('click');
+			$gallery.find('a.vn-gallery-item').off('click.flatsomeLightbox');
+			$gallery.find('.border-image').off('click');
 		},
 
 		/**
@@ -226,22 +230,35 @@
 				return;
 			}
 
-			// Cleanup existing instances
+			// Cleanup existing instances including Flatsome handlers
 			this.cleanup($gallery);
 
 			// Build items array
 			var items = this.buildItemsArray($gallery);
-
-			// Bind click handler
 			var config = this.getMagnificConfig(items);
-			$gallery.on('click.vnGallery', CONFIG.SELECTORS.galleryItem, function(e) {
-				e.preventDefault();
-				e.stopPropagation();
-				e.stopImmediatePropagation();
+
+			// Bind click handler with capture phase to override Flatsome
+			// Use both event delegation and direct binding for maximum compatibility
+			$gallery.find(CONFIG.SELECTORS.galleryItem + ':visible a.vn-gallery-item').each(function(i) {
+				var $link = $(this);
 				
-				var index = $gallery.find(CONFIG.SELECTORS.galleryItem + ':visible').index($(this));
+				// Remove all existing handlers
+				$link.off('click');
 				
-				$.magnificPopup.open(config, index);
+				// Bind new handler with high priority
+				$link.on('click.vnGallery', function(e) {
+					e.preventDefault();
+					e.stopPropagation();
+					e.stopImmediatePropagation();
+					
+					// Open gallery at correct index
+					var $wrapper = $(this).closest(CONFIG.SELECTORS.galleryItem);
+					var index = $gallery.find(CONFIG.SELECTORS.galleryItem + ':visible').index($wrapper);
+					
+					$.magnificPopup.open(config, index);
+					
+					return false;
+				});
 			});
 		}
 	};
