@@ -27,80 +27,113 @@ Plugin WordPress tích hợp với Flatsome UX Builder để hiển thị galler
 
 ## Cấu trúc Dữ liệu MetaBox
 
-Plugin yêu cầu cấu trúc dữ liệu cụ thể từ MetaBox. Tạo một Group/Repeater field với các trường con sau:
+Plugin hoạt động với **MetaBox Builder** hoặc code thủ công. Tạo một Group/Repeater field với field ID mặc định là `vn_gallery_items`.
+
+### Cấu hình trong MetaBox Builder (Khuyến nghị):
+
+1. Vào **Meta Box → Custom Fields → Add New**
+2. Tạo field group với cấu trúc:
+   - **Field ID**: `vn_gallery_items`
+   - **Type**: Group
+   - **Cloneable**: Yes (để tạo repeater)
+   - **Collapsible**: Yes (tùy chọn)
+
+3. Thêm các sub-fields sau:
+
+| Field ID | Field Type | Options | Bắt buộc | Ghi chú |
+|----------|-----------|---------|----------|---------|
+| `item_type` | Select | `image` / `video` | ✅ | Loại item |
+| `item_image` | Image Advanced | max_file_uploads = 1 | ✅ | Hình ảnh (hoặc thumbnail cho video) |
+| `item_video_url` | URL | - | ⚠️ | Bắt buộc nếu type = video |
+| `item_thumbnail` | Image Advanced | max_file_uploads = 1 | ❌ | Thumbnail tùy chỉnh cho video (tùy chọn) |
+| `item_title` | Text | - | ❌ | Tiêu đề hiển thị |
+| `item_description` | Textarea | - | ❌ | Mô tả hiển thị |
+
+### Cấu hình thủ công (Advanced):
+
+Xem file `example-metabox-config.php` trong thư mục plugin để có ví dụ cấu hình đầy đủ.
+
+### ⚠️ Tên trường KHÔNG được thay đổi:
+
+Plugin phụ thuộc vào các tên field sau:
+
+- ✅ `item_type` - Loại item ('image' hoặc 'video')
+- ✅ `item_image` - Field hình ảnh (type: image_advanced)
+- ✅ `item_video_url` - URL video YouTube/Vimeo (type: url)
+- ✅ `item_thumbnail` - Thumbnail tùy chỉnh cho video (type: image_advanced)
+- ✅ `item_title` - Tiêu đề (type: text)
+- ✅ `item_description` - Mô tả (type: textarea)
+
+### 📝 Cấu trúc dữ liệu trả về từ MetaBox:
 
 ```php
+// MetaBox Builder trả về mảng như sau:
 array(
-    'id'     => 'my_gallery_field', // ID của field chính
-    'type'   => 'group',
-    'clone'  => true, // Để tạo repeater
-    'fields' => array(
-        array(
-            'id'   => 'item_type',
-            'type' => 'select',
-            'options' => array(
-                'image' => 'Hình ảnh',
-                'video' => 'Video',
-            ),
+    [0] => array(
+        'item_type' => 'image',           // hoặc 'video'
+        'item_image' => array(
+            [0] => '1837'                 // Attachment ID dạng string
         ),
-        array(
-            'id'   => 'item_image',
-            'type' => 'image_advanced',
-            'max_file_uploads' => 1,
+        'item_title' => 'Tiêu đề',
+        'item_description' => 'Mô tả',
+    ),
+    [1] => array(
+        'item_type' => 'video',
+        'item_video_url' => 'https://youtube.com/watch?v=...',
+        'item_thumbnail' => array(        // Tùy chọn
+            [0] => '398'
         ),
-        array(
-            'id'   => 'item_url',
-            'name' => 'Video URL',
-            'type' => 'url',
-            'desc' => 'URL YouTube hoặc Vimeo',
-        ),
-        array(
-            'id'   => 'item_title',
-            'type' => 'text',
-        ),
-        array(
-            'id'   => 'item_description',
-            'type' => 'textarea',
-        ),
+        'item_title' => 'Video title',
     ),
 )
 ```
 
-### Tên trường bắt buộc (Không được thay đổi):
-
-- `item_type` - Loại item ('image' hoặc 'video')
-- `item_image` - Field hình ảnh (image_advanced)
-- `item_url` - URL video (cho YouTube/Vimeo)
-- `item_title` - Tiêu đề
-- `item_description` - Mô tả
+Plugin tự động xử lý:
+- ✅ Attachment ID dạng string từ MetaBox Builder
+- ✅ Lấy URL hình ảnh từ attachment ID
+- ✅ Tự động lấy thumbnail từ YouTube/Vimeo nếu không có `item_thumbnail`
+- ✅ Fallback sizes: full → large → medium → thumbnail
 
 ## Sử dụng
 
-### 1. Trong UX Builder
+### 1. Thêm Gallery Data trong WordPress Admin
+
+1. Edit Page/Post trong WordPress admin
+2. Tìm meta box **"VN Gallery"** (hoặc tên bạn đã đặt)
+3. Click **"Thêm Item"** để thêm hình ảnh hoặc video:
+   - Chọn **Loại**: Hình ảnh hoặc Video
+   - Upload **Hình ảnh** (bắt buộc - dùng làm thumbnail)
+   - Nếu chọn Video: Nhập **Video URL** (YouTube/Vimeo)
+   - Nhập **Tiêu đề** và **Mô tả** (tùy chọn)
+4. Click **Update** để lưu
+
+### 2. Hiển thị trong UX Builder
 
 1. Mở UX Builder
-2. Thêm element "VN Gallery" từ danh mục "Content"
+2. Thêm element **"VN Gallery"** từ danh mục **"Content"**
 3. Cấu hình:
-   - **MetaBox Field ID**: Nhập ID của Group/Repeater field (ví dụ: `my_gallery_field`)
-   - **Post ID**: Bỏ trống để lấy trang hiện tại, hoặc nhập ID của trang/bài viết cụ thể
-   - **Hiển thị Nút Lọc**: Bật/tắt các nút lọc
+   - **Post ID**: Bỏ trống (lấy trang hiện tại) hoặc nhập ID cụ thể
+   - **Hiển thị Filter**: Bật/tắt nút lọc Tất cả/Hình ảnh/Video
 
-### 2. Sử dụng Shortcode
+**⚠️ Lưu ý**: Field ID đã được hardcode là `vn_gallery_items`, không cần nhập thủ công.
+
+### 3. Sử dụng Shortcode
 
 ```
-[vn_gallery field="my_gallery_field" filters="true"]
+[vn_gallery]
 ```
 
-**Tham số:**
+**Tham số tùy chọn:**
 
-- `field` (bắt buộc) - ID của MetaBox field
-- `post_id` (tùy chọn) - ID của trang/bài viết. Mặc định: trang hiện tại
-- `filters` (tùy chọn) - Hiển thị nút lọc. Giá trị: 'true' hoặc 'false'. Mặc định: 'true'
+- `field` - ID của MetaBox field. Mặc định: `vn_gallery_items`
+- `post_id` - ID của trang/bài viết. Mặc định: trang hiện tại
+- `filters` - Hiển thị nút lọc. Giá trị: `true` hoặc `false`. Mặc định: `true`
 
 **Ví dụ:**
 
 ```
-[vn_gallery field="my_gallery_field" post_id="123" filters="false"]
+[vn_gallery post_id="123" filters="false"]
+[vn_gallery field="custom_gallery_field" filters="true"]
 ```
 
 ## Cấu trúc Plugin
@@ -158,16 +191,40 @@ vn-lightbox-gallery-element/
 - Video play button overlay
 - Mobile responsive breakpoints
 
-## Xử lý Lỗi
+## Debug & Troubleshooting
 
-Plugin hiển thị thông báo lỗi chi tiết cho admin khi:
+### Debug Mode
 
-- Field ID không được cung cấp
-- MetaBox không được kích hoạt
-- Không tìm thấy dữ liệu cho field
-- Dữ liệu không hợp lệ
+Truy cập `?vn_gallery_debug=1` trong URL của post/page để xem thông tin debug:
 
-Người dùng thông thường không thấy thông báo lỗi (chỉ có HTML comment).
+```
+https://yoursite.com/page-slug/?vn_gallery_debug=1
+```
+
+Debug info sẽ hiển thị:
+- Post ID và Title
+- Field ID đang sử dụng
+- Data type và structure
+- Raw data từ MetaBox
+- Image field structure
+
+### Xử lý Lỗi
+
+Plugin hiển thị thông báo lỗi chi tiết cho admin (`manage_options` capability) khi:
+
+- ❌ Field ID không tồn tại
+- ❌ MetaBox plugin không được kích hoạt
+- ❌ Không tìm thấy dữ liệu cho field
+- ❌ Dữ liệu không đúng format array
+- ❌ Item thiếu image hoặc video URL
+
+Thông báo debug hiển thị:
+- Field ID và Post ID đang query
+- Data type (array, null, false...)
+- Số lượng items
+- Hint truy cập debug mode
+
+Người dùng thông thường chỉ thấy HTML comment hoặc không hiển thị gì.
 
 ## Tương thích
 
@@ -185,12 +242,33 @@ Người dùng thông thường không thấy thông báo lỗi (chỉ có HTML 
 
 ### 4.0.0 (2025-11-18)
 
-- Release đầu tiên
-- Tích hợp với Flatsome UX Builder
-- Hỗ trợ hình ảnh và video
-- Bộ lọc theo loại
-- Conditional asset loading
-- WordPress Coding Standards compliant
+**✅ Release đầu tiên - Hoàn chỉnh**
+
+**Features:**
+- ✅ Tích hợp với Flatsome UX Builder
+- ✅ Hỗ trợ hình ảnh và video (YouTube, Vimeo)
+- ✅ Bộ lọc theo loại (Tất cả / Hình ảnh / Video)
+- ✅ Conditional asset loading (chỉ load khi cần)
+- ✅ Magnific Popup integration với lazy loading
+- ✅ Responsive CSS Grid layout
+- ✅ Debug mode (`?vn_gallery_debug=1`)
+
+**Technical:**
+- ✅ WordPress Coding Standards compliant
+- ✅ Singleton pattern cho tất cả classes
+- ✅ Strict typing (PHP 7.4+)
+- ✅ MetaBox Builder compatibility
+- ✅ Xử lý attachment ID dạng string từ MetaBox
+- ✅ Auto thumbnail cho YouTube/Vimeo
+- ✅ Fallback image sizes (full → large → medium → thumbnail)
+
+**Fixed Issues:**
+- 🔧 UX Builder element không xuất hiện → Fixed hook to `ux_builder_setup`
+- 🔧 MetaBox field ID phải nhập thủ công → Hardcoded default `vn_gallery_items`
+- 🔧 Magnific Popup không load → Added dynamic loading support
+- 🔧 Images không render → Fixed MetaBox Builder data structure handling
+- 🔧 Video URL field mismatch → Updated to `item_video_url`
+- 🔧 Attachment ID string format → Converted to int for `wp_get_attachment_image_url()`
 
 ## License
 
