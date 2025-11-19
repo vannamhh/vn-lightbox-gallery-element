@@ -334,7 +334,6 @@
     opacity: 1;
 }
 
-.mfp-arrow:before,
 .mfp-arrow:after {
     content: '';
     display: block;
@@ -352,12 +351,6 @@
     border-top-width: 13px;
     border-bottom-width: 13px;
     top: 8px;
-}
-
-.mfp-arrow:before {
-    border-top-width: 21px;
-    border-bottom-width: 21px;
-    opacity: 0.7;
 }
 
 .mfp-arrow-left {
@@ -392,11 +385,6 @@
     .mfp-arrow {
         width: 60px;
         height: 80px;
-    }
-
-    .mfp-arrow:before {
-        border-top-width: 15px;
-        border-bottom-width: 15px;
     }
 
     .mfp-arrow:after {

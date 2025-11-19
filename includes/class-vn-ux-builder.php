@@ -81,7 +81,7 @@ class VN_UX_Builder {
 					'show_title' => array(
 						'type'    => 'checkbox',
 						'heading' => __( 'Hiển thị Tiêu đề', 'vn-lightbox-gallery' ),
-						'default' => 'false',
+						'default' => '',
 					),
 					'class'   => array(
 						'type'        => 'textfield',

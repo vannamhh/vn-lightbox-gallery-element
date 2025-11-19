@@ -3,7 +3,7 @@
  * Plugin Name: VN Lightbox Gallery Element
  * Plugin URI: https://wpmasterynow.com/
  * Description: Custom Flatsome UX Builder element để hiển thị gallery với lightbox từ dữ liệu MetaBox
- * Version: 4.0.0
+ * Version: 4.1.0
  * Author: VN
  * Author URI: https://wpmasterynow.com/
  * Text Domain: vn-lightbox-gallery
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'VN_LIGHTBOX_GALLERY_VERSION', '4.0.0' );
+define( 'VN_LIGHTBOX_GALLERY_VERSION', '4.1.0' );
 define( 'VN_LIGHTBOX_GALLERY_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'VN_LIGHTBOX_GALLERY_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'VN_LIGHTBOX_GALLERY_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );

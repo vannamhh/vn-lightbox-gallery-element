@@ -42,7 +42,7 @@
 			tPrev: 'Trước (Left arrow)',
 			tNext: 'Tiếp (Right arrow)',
 			tCounter: '%curr% / %total%',
-			arrowMarkup: '<button title="%title%" type="button" class="mfp-arrow mfp-arrow-%dir%"></button>'
+			arrowMarkup: '<button title="%title%" type="button" class="vn-arrow vn-prev fb-icon mfp-arrow mfp-arrow-%dir%" id="vnMenuPrev"><span class="fb-icon-arrow"></span></button></button>'
 		},
 		imageConfig: {
 			verticalFit: true,
@@ -97,7 +97,7 @@
 			var desc = item.description || '';
 			
 			if (desc) {
-				return '<p>' + this.escapeHtml(desc) + '</p>';
+				return '<div class="mfp-description">' + this.escapeHtml(desc) + '</div>';
 			}
 			
 			return '';
@@ -161,11 +161,14 @@
 				var dataType = $link.attr('data-type');
 				var itemType = (dataType === 'video') ? 'iframe' : 'image';
 				
+				var title = $link.attr('data-title') || '';
+				var description = $link.attr('data-description') || '';
+				
 				items.push({
 					src: $link.attr('href'),
 					type: itemType,
-					title: $link.attr('data-title') || '',
-					description: $link.attr('data-description') || ''
+					title: title,
+					description: description
 				});
 			});
 			return items;
@@ -207,6 +210,56 @@
 				callbacks: {
 					markupParse: function(template, values, item) {
 						values.title = Utils.buildTitleMarkup(item);
+					},
+					change: function() {
+						var index = this.index;
+						var item = items[index];
+						var $content = this.contentContainer;
+						var $bottomBar = $content.find('.mfp-bottom-bar');
+						var $title = $bottomBar.find('.mfp-title');
+						
+						if (item && item.description) {
+							var titleHtml = Utils.buildTitleMarkup(item);
+							$title.html(titleHtml);
+							$bottomBar.show();
+						} else {
+							$bottomBar.hide();
+						}
+					},
+					imageLoadComplete: function() {
+						var index = this.index;
+						var item = items[index];
+						var $content = this.contentContainer;
+						var $bottomBar = $content.find('.mfp-bottom-bar');
+						var $title = $bottomBar.find('.mfp-title');
+						
+						if (item && item.description) {
+							var titleHtml = Utils.buildTitleMarkup(item);
+							$title.html(titleHtml);
+							$bottomBar.show();
+						} else {
+							$bottomBar.hide();
+						}
+					},
+					open: function() {
+						var self = this;
+						var index = this.index;
+						var item = items[index];
+						
+						// Wait for DOM to be ready
+						setTimeout(function() {
+							var $content = self.contentContainer;
+							var $bottomBar = $content.find('.mfp-bottom-bar');
+							var $title = $bottomBar.find('.mfp-title');
+							
+							if (item && item.description) {
+								var titleHtml = Utils.buildTitleMarkup(item);
+								$title.html(titleHtml);
+								$bottomBar.show();
+							} else {
+								$bottomBar.hide();
+							}
+						}, 50);
 					}
 				}
 			});
