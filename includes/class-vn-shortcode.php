@@ -69,21 +69,32 @@ class VN_Shortcode {
 		// Parse attributes.
 		$atts = shortcode_atts(
 			array(
-				'field'      => self::METABOX_FIELD_ID,
-				'post_id'    => 0,
-				'filters'    => 'true',
-				'show_title' => 'false',
-				'class'      => '',
+				'field'            => self::METABOX_FIELD_ID,
+				'post_id'          => 0, // Deprecated: use page_id or custom_post_id.
+				'source_type'      => 'page',
+				'page_id'          => 0,
+				'custom_post_id'   => 0,
+				'custom_post_type' => '',
+				'filters'          => 'true',
+				'show_title'       => 'false',
+				'class'            => '',
 			),
 			$atts,
 			'vn_gallery'
 		);
 
 		$field_id     = sanitize_key( $atts['field'] );
-		$post_id      = absint( $atts['post_id'] );
-		$post_id      = ( $post_id > 0 ) ? $post_id : absint( get_the_ID() );
+		$source_type  = sanitize_text_field( $atts['source_type'] );
 		$show_filters = rest_sanitize_boolean( $atts['filters'] );
 		$show_title   = rest_sanitize_boolean( $atts['show_title'] );
+
+		// Determine post ID based on source type.
+		$post_id = $this->determine_post_id( $atts, $source_type );
+
+		// Validate post ID.
+		if ( $post_id <= 0 ) {
+			return $this->render_error( __( 'Lỗi VN Gallery: Không xác định được post ID.', 'vn-lightbox-gallery' ) );
+		}
 
 		// Sanitize multiple classes separated by spaces.
 		$custom_classes = array();
@@ -157,6 +168,38 @@ class VN_Shortcode {
 		echo '</div>'; // .vn-gallery-wrapper.
 
 		return ob_get_clean();
+	}
+
+	/**
+	 * Determine post ID based on source type and attributes.
+	 *
+	 * @param array  $atts Shortcode attributes.
+	 * @param string $source_type Source type (page or custom_post).
+	 * @return int Post ID.
+	 */
+	private function determine_post_id( array $atts, string $source_type ): int {
+		// Backward compatibility: Check old post_id attribute first.
+		if ( ! empty( $atts['post_id'] ) && absint( $atts['post_id'] ) > 0 ) {
+			return absint( $atts['post_id'] );
+		}
+
+		// Determine based on source type.
+		if ( 'custom_post' === $source_type ) {
+			// Get custom post ID.
+			$post_id = absint( $atts['custom_post_id'] );
+			if ( $post_id > 0 ) {
+				return $post_id;
+			}
+		} else {
+			// Default to page.
+			$post_id = absint( $atts['page_id'] );
+			if ( $post_id > 0 ) {
+				return $post_id;
+			}
+		}
+
+		// Fallback to current post/page ID.
+		return absint( get_the_ID() );
 	}
 
 	/**

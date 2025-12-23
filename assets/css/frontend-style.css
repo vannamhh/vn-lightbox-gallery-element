@@ -181,8 +181,10 @@
     font-weight: 500;
 }
 
-.vn-youtube-play-button {
-    display: none;
+.vn-item-image {
+    .vn-youtube-play-button {
+        display: none;
+    }
 }
 
 .image-inner {
@@ -190,7 +192,7 @@
     height: 100%;
 }
 
-.vn-item-video {
+.vn-gallery-item.vn-item-video {
     .vn-youtube-play-button {
         position: absolute;
         z-index: 2;

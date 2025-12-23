@@ -2,6 +2,22 @@
 
 Tất cả thay đổi đáng chú ý của plugin VN Lightbox Gallery Element sẽ được ghi chép tại đây.
 
+## [4.2.0] - 2024-12-22
+
+### Added (Thêm mới)
+- **Hỗ trợ Custom Post Type**: Cho phép chọn nguồn gallery từ Custom Post Type ngoài Page
+- **Tùy chọn nguồn linh hoạt**: Thêm dropdown chọn nguồn (Page hoặc Custom Post Type) trong UX Builder
+- **Điều kiện hiển thị thông minh**: UX Builder tự động hiển thị dropdown phù hợp dựa trên nguồn được chọn
+
+### Changed (Thay đổi)
+- Thêm hàm `get_custom_post_types()` để lấy danh sách các custom post types đã đăng ký
+- Thêm hàm `get_custom_posts_list()` để lấy danh sách các custom posts
+- Thêm hàm `determine_post_id()` trong shortcode handler để xác định post ID dựa trên nguồn
+- Cập nhật shortcode template để hỗ trợ các tham số mới: `source_type`, `page_id`, `custom_post_id`, `custom_post_type`
+
+### Backward Compatibility (Tương thích ngược)
+- Vẫn hỗ trợ tham số `post_id` cũ để đảm bảo tương thích ngược với các shortcode hiện có
+
 ## [4.0.0] - 2025-11-18
 
 ### Added (Thêm mới)
