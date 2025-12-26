@@ -1,11 +1,11 @@
 # VN Lightbox Gallery Element
 
-![Version](https://img.shields.io/badge/version-4.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-4.1.0-blue.svg)
 ![WordPress](https://img.shields.io/badge/WordPress-5.8%2B-blue.svg)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-purple.svg)
 ![License](https://img.shields.io/badge/license-GPL--2.0%2B-green.svg)
 
-A powerful WordPress plugin that integrates with Flatsome UX Builder to display beautiful lightbox galleries powered by MetaBox data.
+A powerful WordPress plugin that integrates with Flatsome UX Builder to display beautiful lightbox galleries powered by MetaBox data and custom post types.
 
 ## ✨ Features
 
@@ -16,7 +16,7 @@ A powerful WordPress plugin that integrates with Flatsome UX Builder to display 
 - **⚡ Performance Optimized** - Conditional asset loading (only loads when needed)
 - **🎭 Magnific Popup** - Uses Flatsome's built-in Magnific Popup for smooth lightbox experience
 - **🧰 MetaBox Powered** - Easy content management through MetaBox Builder
-- **🎯 Cross-Page Gallery** - Display any page's gallery on different pages using post_id
+- **🎯 Gallery Post Type Support** - Dedicated custom post type for gallery management
 - **📝 Title Display Toggle** - Option to show/hide gallery item titles
 - **🎨 Custom CSS Classes** - Add custom classes for advanced styling
 - **✅ WordPress Standards** - Follows WordPress Coding Standards and best practices
@@ -27,26 +27,38 @@ A powerful WordPress plugin that integrates with Flatsome UX Builder to display 
 - **PHP:** 7.4 or higher
 - **Theme:** Flatsome (any version with UX Builder)
 - **Plugin:** Meta Box (for content management)
+- **Custom Post Type:** `gallery` (must be created with MetaBox field group)
 
 ## 🚀 Installation
 
 1. Upload the `vn-lightbox-gallery-element` folder to `/wp-content/plugins/`
 2. Activate the plugin through the 'Plugins' menu in WordPress
 3. Ensure Flatsome theme and Meta Box plugin are activated
-4. Create your gallery field using MetaBox Builder (see configuration below)
+4. **Create the 'gallery' custom post type with MetaBox field group** (see configuration below)
 
 ## 📦 MetaBox Configuration
 
-The plugin works with **MetaBox Builder** or manual code configuration. Create a Group/Repeater field with the default field ID `vn_gallery_items`.
+**⚠️ REQUIRED:** You must create a custom post type called `gallery` with a MetaBox field group. This plugin only works with the `gallery` post type.
 
-### Using MetaBox Builder (Recommended):
+### Step 1: Create Custom Post Type (Required)
+
+1. Go to **Meta Box → Post Types → Add New**
+2. Configure the post type:
+   - **Plural name:** Galleries
+   - **Singular name:** Gallery
+   - **Post type:** `gallery`
+   - **Public:** Yes
+   - **Hierarchical:** No
+   - **Supports:** Title, Editor, Thumbnail (optional)
+
+### Step 2: Create MetaBox Field Group
 
 1. Go to **Meta Box → Custom Fields → Add New**
-2. Create a field group with the following structure:
-   - **Field ID**: `vn_gallery_items`
-   - **Type**: Group
-   - **Cloneable**: Yes (to create repeater)
-   - **Collapsible**: Yes (optional)
+2. Create a field group with the following settings:
+   - **Title:** VN Gallery Items
+   - **Location:** Post Type → is equal to → gallery
+   - **Position:** Normal
+   - **Priority:** High
 
 3. Add the following sub-fields:
 
@@ -106,28 +118,28 @@ The plugin automatically handles:
 
 ## 📖 Usage
 
-### 1. Adding Gallery Content in WordPress Admin
+### 1. Creating Gallery Content
 
-1. Edit a Page/Post in WordPress admin
-2. Find the meta box **"VN Gallery"** (or your custom name)
-3. Click **"Add Item"** to add images or videos:
+1. Go to **Galleries → Add New** in WordPress admin
+2. Enter a **title** for your gallery (e.g., "Portfolio Images", "Event Photos")
+3. In the **VN Gallery Items** meta box, click **"Add Item"** to add images or videos:
    - Select **Type**: Image or Video
    - Upload **Image** (required - used as thumbnail)
    - If Video: Enter **Video URL** (YouTube/Vimeo)
    - Enter **Title** and **Description** (optional)
-4. Click **Update** to save
+4. Click **Publish** to save your gallery
 
 ### 2. Display in UX Builder
 
 1. Open UX Builder
 2. Add the **"VN Gallery"** element from the **"Content"** category
 3. Configure options:
-   - **Select Gallery Page**: Choose a page with gallery data from dropdown
+   - **Select Gallery**: Choose a gallery from the dropdown (only shows published galleries)
    - **Show Filter Buttons**: Enable/disable All/Images/Videos filter buttons
    - **Show Title**: Toggle title display below gallery items
    - **Custom Class**: Add custom CSS classes for styling
 
-**💡 Note**: The field ID is hardcoded as `vn_gallery_items` - no manual input needed.
+**💡 Note**: The field ID is hardcoded as `vn_gallery_items` and post type is fixed to `gallery`.
 
 ### 3. Using Shortcode
 
@@ -140,7 +152,7 @@ The plugin automatically handles:
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `field` | string | `vn_gallery_items` | MetaBox field ID |
-| `post_id` | integer | current page | ID of page/post with gallery data |
+| `gallery_id` | integer | - | ID of gallery post to display (required for shortcode) |
 | `filters` | boolean | `true` | Show filter buttons (All/Images/Videos) |
 | `show_title` | boolean | `false` | Display item titles below thumbnails |
 | `class` | string | - | Custom CSS classes (space-separated) |
@@ -148,9 +160,9 @@ The plugin automatically handles:
 **Examples:**
 
 ```
-[vn_gallery post_id="123" filters="false"]
-[vn_gallery post_id="456" show_title="true" class="my-custom-gallery"]
-[vn_gallery field="custom_gallery_field" filters="true"]
+[vn_gallery gallery_id="123" filters="false"]
+[vn_gallery gallery_id="456" show_title="true" class="my-custom-gallery"]
+[vn_gallery gallery_id="789" field="custom_gallery_field" filters="true"]
 ```
 
 ## 📁 Plugin Structure
@@ -177,13 +189,14 @@ vn-lightbox-gallery-element/
 
 - Checks `function_exists('add_ux_builder_shortcode')` before registration
 - Hooks into `ux_builder_setup` action
-- Registers element with page dropdown selector
+- Registers element with gallery dropdown selector (fixed to `post_type='gallery'`)
 - Dynamic template generation with conditional attributes
 
 **Key Features:**
-- Page selection dropdown instead of manual ID input
-- Conditional shortcode attribute rendering
-- WP_Query integration for page list
+- Gallery selection dropdown instead of manual ID input
+- Optimized query directly from `gallery` post type
+- Single-step UX (no source type selection needed)
+- Performance optimized (no scanning all post types)
 
 ### Class: VN_Shortcode
 
@@ -195,7 +208,7 @@ vn-lightbox-gallery-element/
 
 **Key Features:**
 - Multi-class support (space-separated)
-- Cross-page gallery loading with post_id parameter
+- Gallery loading with gallery_id parameter (fixed to `gallery` post type)
 - Gallery item wrapper for title display
 - MetaBox attachment ID handling (string to int conversion)
 
@@ -276,6 +289,8 @@ Regular users see HTML comments or no output.
 ### Common Issues
 
 **Gallery not showing:**
+- Check if `gallery` custom post type exists and has published posts
+- Verify MetaBox field group is assigned to `gallery` post type
 - Check if MetaBox field ID is `vn_gallery_items`
 - Verify gallery data exists in WordPress admin
 - Enable debug mode to see detailed information
@@ -289,10 +304,10 @@ Regular users see HTML comments or no output.
 - Confirm video URL format is correct (YouTube/Vimeo)
 - Check Magnific Popup is loaded (Flatsome dependency)
 
-**Cross-page gallery not working:**
-- Verify post_id parameter is correct
-- Ensure target page has gallery data
-- Check page post type matches MetaBox configuration
+**Gallery selection not working in UX Builder:**
+- Verify `gallery` post type is registered
+- Ensure galleries are published (not draft)
+- Check if MetaBox field group is properly configured
 
 ## 🔄 Compatibility
 
@@ -309,6 +324,35 @@ Regular users see HTML comments or no output.
 - **Issues:** Check debug mode first
 
 ## 📝 Changelog
+
+### 4.1.0 (2025-12-26)
+
+**🚀 Major Refactor - Gallery Post Type Focus**
+
+**Breaking Changes:**
+- ❌ Removed multi-source support (page/custom_post selection)
+- ❌ Removed `source_type`, `custom_post_type`, `page_id`, `custom_post_id` options
+- ❌ Removed `post_id` shortcode parameter
+- ✅ **REQUIRES:** Custom post type `gallery` with MetaBox field group
+
+**New Features:**
+- ✅ Dedicated `gallery` custom post type support
+- ✅ Single gallery selection in UX Builder (no multi-step process)
+- ✅ Optimized performance (direct query from `gallery` post type)
+- ✅ Cleaner UX (1-step selection instead of 3 steps)
+- ✅ New `gallery_id` shortcode parameter
+
+**Technical Improvements:**
+- ✅ Refactored VN_UX_Builder class (removed ~118 lines of code)
+- ✅ New `get_gallery_list()` method with optimized query
+- ✅ Simplified shortcode template
+- ✅ Better error prevention (fixed post type prevents data mismatch)
+
+**Migration Guide:**
+- 🔄 Create `gallery` custom post type via Meta Box → Post Types
+- 🔄 Create MetaBox field group assigned to `gallery` post type
+- 🔄 Move existing gallery data from pages/posts to gallery posts
+- 🔄 Update shortcodes: replace `post_id` with `gallery_id`
 
 ### 4.0.0 (2025-11-18)
 
