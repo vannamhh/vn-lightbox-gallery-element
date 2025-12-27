@@ -69,31 +69,35 @@ class VN_Shortcode {
 		// Parse attributes.
 		$atts = shortcode_atts(
 			array(
-				'field'            => self::METABOX_FIELD_ID,
-				'post_id'          => 0, // Deprecated: use page_id or custom_post_id.
-				'source_type'      => 'page',
-				'page_id'          => 0,
-				'custom_post_id'   => 0,
-				'custom_post_type' => '',
-				'filters'          => 'true',
-				'show_title'       => 'false',
-				'class'            => '',
+				'field'      => self::METABOX_FIELD_ID,
+				'gallery_id' => 0,
+				'filters'    => 'true',
+				'show_title' => 'false',
+				'class'      => '',
 			),
 			$atts,
 			'vn_gallery'
 		);
 
 		$field_id     = sanitize_key( $atts['field'] );
-		$source_type  = sanitize_text_field( $atts['source_type'] );
+		$gallery_id   = absint( $atts['gallery_id'] );
 		$show_filters = rest_sanitize_boolean( $atts['filters'] );
 		$show_title   = rest_sanitize_boolean( $atts['show_title'] );
 
-		// Determine post ID based on source type.
-		$post_id = $this->determine_post_id( $atts, $source_type );
+		// Validate gallery ID.
+		if ( $gallery_id <= 0 ) {
+			return $this->render_error( __( 'Lỗi VN Gallery: Vui lòng chọn gallery cần hiển thị.', 'vn-lightbox-gallery' ) );
+		}
 
-		// Validate post ID.
-		if ( $post_id <= 0 ) {
-			return $this->render_error( __( 'Lỗi VN Gallery: Không xác định được post ID.', 'vn-lightbox-gallery' ) );
+		// Verify post type is 'gallery'.
+		if ( get_post_type( $gallery_id ) !== 'gallery' ) {
+			return $this->render_error(
+				sprintf(
+					/* translators: %d: Post ID */
+					__( 'Lỗi VN Gallery: Post ID %d không phải là gallery post type.', 'vn-lightbox-gallery' ),
+					$gallery_id
+				)
+			);
 		}
 
 		// Sanitize multiple classes separated by spaces.
@@ -113,13 +117,12 @@ class VN_Shortcode {
 			return $this->render_error( __( 'Lỗi VN Gallery: MetaBox.io không được kích hoạt.', 'vn-lightbox-gallery' ) );
 		}
 
-		// Get gallery data from MetaBox.
-		// Note: Must specify post type to retrieve data correctly from different post types.
-		$gallery_data = rwmb_get_value( $field_id, array( 'object_id' => $post_id ), $post_id );
+		// Get gallery data from MetaBox (fixed post_type='gallery').
+		$gallery_data = rwmb_get_value( $field_id, array( 'object_id' => $gallery_id ), $gallery_id );
 
 		// Debug for admins: Show data info if invalid.
 		if ( $this->should_show_debug( $gallery_data ) ) {
-			return $this->render_error( $this->build_debug_info( $field_id, $post_id, $gallery_data ) );
+			return $this->render_error( $this->build_debug_info( $field_id, $gallery_id, $gallery_data ) );
 		}
 
 		// Validate gallery data.
@@ -154,11 +157,11 @@ class VN_Shortcode {
 		}
 
 		// Render gallery grid.
-		$gallery_id = 'vn-gallery-' . esc_attr( $post_id . '-' . $field_id );
-		echo '<div class="vn-gallery-grid" id="' . esc_attr( $gallery_id ) . '">';
+		$gallery_dom_id = 'vn-gallery-' . esc_attr( $gallery_id . '-' . $field_id );
+		echo '<div class="vn-gallery-grid" id="' . esc_attr( $gallery_dom_id ) . '">';
 
 		// Debug: Log gallery data for admins.
-		$this->log_gallery_data( $post_id, $field_id, $gallery_data );
+		$this->log_gallery_data( $gallery_id, $field_id, $gallery_data );
 
 		foreach ( $gallery_data as $item ) {
 			$this->render_item( $item, $show_title );
@@ -170,37 +173,7 @@ class VN_Shortcode {
 		return ob_get_clean();
 	}
 
-	/**
-	 * Determine post ID based on source type and attributes.
-	 *
-	 * @param array  $atts Shortcode attributes.
-	 * @param string $source_type Source type (page or custom_post).
-	 * @return int Post ID.
-	 */
-	private function determine_post_id( array $atts, string $source_type ): int {
-		// Backward compatibility: Check old post_id attribute first.
-		if ( ! empty( $atts['post_id'] ) && absint( $atts['post_id'] ) > 0 ) {
-			return absint( $atts['post_id'] );
-		}
 
-		// Determine based on source type.
-		if ( 'custom_post' === $source_type ) {
-			// Get custom post ID.
-			$post_id = absint( $atts['custom_post_id'] );
-			if ( $post_id > 0 ) {
-				return $post_id;
-			}
-		} else {
-			// Default to page.
-			$post_id = absint( $atts['page_id'] );
-			if ( $post_id > 0 ) {
-				return $post_id;
-			}
-		}
-
-		// Fallback to current post/page ID.
-		return absint( get_the_ID() );
-	}
 
 	/**
 	 * Render filter buttons.

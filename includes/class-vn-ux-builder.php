@@ -134,7 +134,9 @@ class VN_UX_Builder {
 		if ( $query->have_posts() ) {
 			while ( $query->have_posts() ) {
 				$query->the_post();
-				$galleries[ get_the_ID() ] = get_the_title() . ' (ID: ' . get_the_ID() . ')';
+				// Use raw title to prevent WordPress from converting -- to em dash (&#8211;).
+				$raw_title                 = get_post_field( 'post_title', get_the_ID(), 'raw' );
+				$galleries[ get_the_ID() ] = $raw_title . ' (ID: ' . get_the_ID() . ')';
 			}
 			wp_reset_postdata();
 		}
