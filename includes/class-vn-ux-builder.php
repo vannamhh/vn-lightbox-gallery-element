@@ -61,11 +61,41 @@ class VN_UX_Builder {
 		add_ux_builder_shortcode(
 			'vn_gallery',
 			array(
-				'name'     => __( 'VN Gallery', 'vn-lightbox-gallery' ),
-				'category' => __( 'Content' ),
-				'icon'     => 'text',
-				'template' => $this->get_shortcode_template(),
-				'options'  => array(
+				'name'      => __( 'VN Gallery', 'vn-lightbox-gallery' ),
+				'category'  => __( 'Content' ),
+				'thumbnail' => $this->get_element_thumbnail(),
+				'wrap'      => false,
+				'options'   => $this->get_element_options(),
+			)
+		);
+	}
+
+	/**
+	 * Get element thumbnail for UX Builder panel.
+	 *
+	 * Uses Flatsome's helper if available, otherwise returns empty string.
+	 *
+	 * @return string Thumbnail URL or empty string.
+	 */
+	private function get_element_thumbnail(): string {
+		if ( function_exists( 'flatsome_ux_builder_thumbnail' ) ) {
+			return flatsome_ux_builder_thumbnail( 'ux_gallery' );
+		}
+		return '';
+	}
+
+	/**
+	 * Get element options for UX Builder.
+	 *
+	 * @return array Element options configuration.
+	 */
+	private function get_element_options(): array {
+		return array(
+			// Gallery Selection.
+			'gallery_options' => array(
+				'type'    => 'group',
+				'heading' => __( 'Gallery', 'vn-lightbox-gallery' ),
+				'options' => array(
 					'gallery_id' => array(
 						'type'        => 'select',
 						'heading'     => __( 'Chọn Gallery', 'vn-lightbox-gallery' ),
@@ -83,26 +113,51 @@ class VN_UX_Builder {
 						'heading' => __( 'Hiển thị Tiêu đề', 'vn-lightbox-gallery' ),
 						'default' => '',
 					),
-					'class'      => array(
+				),
+			),
+
+			// Layout Options - Following Flatsome pattern.
+			'layout_options'  => array(
+				'type'    => 'group',
+				'heading' => __( 'Layout', 'vn-lightbox-gallery' ),
+				'options' => array(
+					'col_spacing' => array(
+						'type'    => 'select',
+						'heading' => __( 'Column Spacing', 'vn-lightbox-gallery' ),
+						'default' => 'normal',
+						'options' => array(
+							'collapse' => __( 'Collapse', 'vn-lightbox-gallery' ),
+							'xsmall'   => __( 'X Small', 'vn-lightbox-gallery' ),
+							'small'    => __( 'Small', 'vn-lightbox-gallery' ),
+							'normal'   => __( 'Normal', 'vn-lightbox-gallery' ),
+							'large'    => __( 'Large', 'vn-lightbox-gallery' ),
+						),
+					),
+					'columns'     => array(
+						'type'       => 'slider',
+						'heading'    => __( 'Columns', 'vn-lightbox-gallery' ),
+						'default'    => '4',
+						'responsive' => true,
+						'max'        => '8',
+						'min'        => '1',
+					),
+				),
+			),
+
+			// Advanced Options.
+			'advanced_options' => array(
+				'type'    => 'group',
+				'heading' => __( 'Advanced', 'vn-lightbox-gallery' ),
+				'options' => array(
+					'class' => array(
 						'type'        => 'textfield',
 						'heading'     => __( 'Class', 'vn-lightbox-gallery' ),
 						'description' => __( 'Thêm custom CSS class', 'vn-lightbox-gallery' ),
 						'default'     => '',
 					),
 				),
-			)
+			),
 		);
-	}
-
-	/**
-	 * Get shortcode template with proper attribute mapping.
-	 *
-	 * This ensures UX Builder passes all attributes to the shortcode.
-	 *
-	 * @return string Shortcode template.
-	 */
-	private function get_shortcode_template(): string {
-		return '[vn_gallery{{gallery_id ? \' gallery_id="\' + gallery_id + \'"\' : \'\'}}{{filters ? \' filters="\' + filters + \'"\' : \'\'}}{{show_title ? \' show_title="\' + show_title + \'"\' : \'\'}}{{class ? \' class="\' + class + \'"\' : \'\'}}]';
 	}
 
 	/**

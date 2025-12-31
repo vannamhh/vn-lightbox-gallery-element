@@ -2,20 +2,42 @@
  * VN Lightbox Gallery Frontend Styles
  *
  * @package VN_Lightbox_Gallery
- * @since 4.0.0
+ * @since 4.3.0
+ *
+ * This stylesheet provides standalone styling for VN Lightbox Gallery plugin.
+ * It includes CSS custom properties with fallback values for compatibility.
  */
 
 /* ==========================================================================
-   CSS Variables
+   CSS Variables - Standalone defaults with theme override support
    ========================================================================== */
 :root {
-    --vn-gallery-spacing: 56px;
-    --vn-gallery-gap: 56px;
+    /* Spacing */
+    --vn-gallery-spacing: clamp(2.8rem, 2.9166666667vw, 5.6rem);
+    --vn-gallery-gap: clamp(2.8rem, 2.9166666667vw, 5.6rem);
     --vn-gallery-gap-mobile: 14px;
-    --vn-gallery-border-radius: 4px;
-    --vn-gallery-transition: all 0.3s ease;
-    --vn-gallery-primary-color: #0073aa;
+
+    /* Unit measurements */
+    --vn-unit-56: clamp(2.1rem, 2.9166666667vw, 5.6rem);
+    --vn-unit-28: clamp(1.4rem, 1.4583333333vw, 2.8rem);
+    --vn-fluid-14-28: clamp(1.4rem, 1.4583333333vw, 2.8rem);
+    --vn-fluid-28-56: clamp(2.8rem, 2.9166666667vw, 5.6rem);
+
+    /* Typography */
+    --vn-fs-18: clamp(1.4rem, 0.9375vw, 1.8rem);
+    --vn-fs-20: clamp(1.6rem, 1.0416666667vw, 2rem);
+
+    /* Colors - Standalone defaults */
+    --vn-gallery-primary-color: var(--fs-color-primary, #1a3760);
+    --vn-gallery-secondary-color: var(--fs-color-secondary, #f5a623);
+    --vn-gallery-success-color: var(--fs-color-success, #4caf50);
+    --vn-gallery-text-color: var(--fs-color-primary, #333333);
+    --vn-gallery-white: var(--color-white, #ffffff);
     --vn-gallery-error-color: #d63638;
+
+    /* Visual */
+    --vn-gallery-border-radius: 0;
+    --vn-gallery-transition: all 0.3s ease;
 }
 
 /* ==========================================================================
@@ -23,6 +45,10 @@
    ========================================================================== */
 .vn-gallery-wrapper {
     margin: var(--vn-gallery-spacing) 0;
+}
+
+.vn-gallery-wrapper.gallery-filter {
+    margin-top: 0;
 }
 
 /* ==========================================================================
@@ -36,26 +62,40 @@
     justify-content: center;
 }
 
-.vn-filter-btn {
-    padding: 10px 20px;
-    background: #f5f5f5;
-    border: 2px solid #ddd;
-    color: #333;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    outline: none;
+.gallery-filter .vn-gallery-filters {
+    margin-bottom: 2.8rem;
 }
 
-.vn-filter-btn:hover {
-    background: #e0e0e0;
-    border-color: #ccc;
+.vn-filter-btn {
+    padding: 0 0.7rem;
+    background-color: #eeebf8;
+    border: 0;
+    border-radius: 0.7rem;
+    color: var(--vn-gallery-primary-color);
+    font-size: var(--vn-fs-18);
+    font-weight: 500;
+    letter-spacing: -0.025em;
+    cursor: pointer;
+    outline: none;
+    width: clamp(11rem, calc(102.7184px + 1.9417vw), 14rem);
+    height: auto;
+    min-height: 44px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+    transition: var(--vn-gallery-transition);
+}
+
+.vn-filter-btn:hover,
+.vn-filter-btn:focus {
+    color: var(--vn-gallery-white);
+    background-color: var(--vn-gallery-success-color);
 }
 
 .vn-filter-btn.active {
-    background: var(--vn-gallery-primary-color);
-    border-color: var(--vn-gallery-primary-color);
-    color: #fff;
+    color: var(--vn-gallery-white);
+    background-color: var(--vn-gallery-success-color);
 }
 
 /* ==========================================================================
@@ -63,26 +103,71 @@
    ========================================================================== */
 .vn-gallery-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: var(--vn-gallery-gap);
     padding: 0;
     margin: 0;
+    list-style: none;
 }
 
-/* Responsive grid adjustments */
-@media (max-width: 768px) {
-    .vn-gallery-grid {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: var(--vn-gallery-gap-mobile);
-    }
+.gallery-filter .vn-gallery-grid {
+    gap: 0;
 }
 
-@media (max-width: 480px) {
-    .vn-gallery-grid {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-        gap: 8px;
-    }
+/* Border image decoration */
+.vn-gallery-grid .border-image {
+    --border-line: 1.4px;
+    --space-line: 1.4rem;
+    --width-line: var(--vn-unit-56);
 }
+
+/* ==========================================================================
+   Flatsome Responsive Column Classes (Standalone Support)
+   These provide fallback when Flatsome theme is not active.
+   ========================================================================== */
+
+/* Large (Desktop) columns - 850px+ */
+.vn-gallery-grid.large-columns-1 { grid-template-columns: repeat(1, 1fr); }
+.vn-gallery-grid.large-columns-2 { grid-template-columns: repeat(2, 1fr); }
+.vn-gallery-grid.large-columns-3 { grid-template-columns: repeat(3, 1fr); }
+.vn-gallery-grid.large-columns-4 { grid-template-columns: repeat(4, 1fr); }
+.vn-gallery-grid.large-columns-5 { grid-template-columns: repeat(5, 1fr); }
+.vn-gallery-grid.large-columns-6 { grid-template-columns: repeat(6, 1fr); }
+.vn-gallery-grid.large-columns-7 { grid-template-columns: repeat(7, 1fr); }
+.vn-gallery-grid.large-columns-8 { grid-template-columns: repeat(8, 1fr); }
+
+/* Medium (Tablet) columns - 550px to 849px */
+@media (max-width: 849px) {
+    .vn-gallery-grid.medium-columns-1 { grid-template-columns: repeat(1, 1fr); }
+    .vn-gallery-grid.medium-columns-2 { grid-template-columns: repeat(2, 1fr); }
+    .vn-gallery-grid.medium-columns-3 { grid-template-columns: repeat(3, 1fr); }
+    .vn-gallery-grid.medium-columns-4 { grid-template-columns: repeat(4, 1fr); }
+    .vn-gallery-grid.medium-columns-5 { grid-template-columns: repeat(5, 1fr); }
+    .vn-gallery-grid.medium-columns-6 { grid-template-columns: repeat(6, 1fr); }
+    .vn-gallery-grid.medium-columns-7 { grid-template-columns: repeat(7, 1fr); }
+    .vn-gallery-grid.medium-columns-8 { grid-template-columns: repeat(8, 1fr); }
+}
+
+/* Small (Mobile) columns - 549px and below */
+@media (max-width: 549px) {
+    .vn-gallery-grid.small-columns-1 { grid-template-columns: repeat(1, 1fr); }
+    .vn-gallery-grid.small-columns-2 { grid-template-columns: repeat(2, 1fr); }
+    .vn-gallery-grid.small-columns-3 { grid-template-columns: repeat(3, 1fr); }
+    .vn-gallery-grid.small-columns-4 { grid-template-columns: repeat(4, 1fr); }
+    .vn-gallery-grid.small-columns-5 { grid-template-columns: repeat(5, 1fr); }
+    .vn-gallery-grid.small-columns-6 { grid-template-columns: repeat(6, 1fr); }
+    .vn-gallery-grid.small-columns-7 { grid-template-columns: repeat(7, 1fr); }
+    .vn-gallery-grid.small-columns-8 { grid-template-columns: repeat(8, 1fr); }
+}
+
+/* ==========================================================================
+   Column Spacing Classes (Flatsome Compatible)
+   ========================================================================== */
+.vn-gallery-grid.row-collapse { gap: 0; }
+.vn-gallery-grid.row-xsmall { gap: clamp(0.7rem, 0.7291666667vw, 1.4rem); }
+.vn-gallery-grid.row-small { gap: clamp(1.4rem, 1.4583333333vw, 2.8rem); }
+/* row-normal uses default --vn-gallery-gap */
+.vn-gallery-grid.row-large { gap: clamp(4.2rem, 4.375vw, 8.4rem); }
 
 /* ==========================================================================
    Gallery Items
@@ -115,8 +200,7 @@
     transform: scale(1.05);
 }
 
-/* Loading skeleton animation */
-
+/* Loading state */
 .vn-gallery-item img[src] {
     opacity: 1;
 }
@@ -127,41 +211,15 @@
 }
 
 /* Staggered animation delays */
-.vn-gallery-item:nth-child(1) {
-    animation-delay: 0s;
-}
-
-.vn-gallery-item:nth-child(2) {
-    animation-delay: 0.05s;
-}
-
-.vn-gallery-item:nth-child(3) {
-    animation-delay: 0.1s;
-}
-
-.vn-gallery-item:nth-child(4) {
-    animation-delay: 0.15s;
-}
-
-.vn-gallery-item:nth-child(5) {
-    animation-delay: 0.2s;
-}
-
-.vn-gallery-item:nth-child(6) {
-    animation-delay: 0.25s;
-}
-
-.vn-gallery-item:nth-child(7) {
-    animation-delay: 0.3s;
-}
-
-.vn-gallery-item:nth-child(8) {
-    animation-delay: 0.35s;
-}
-
-.vn-gallery-item:nth-child(n+9) {
-    animation-delay: 0.4s;
-}
+.vn-gallery-item:nth-child(1) { animation-delay: 0s; }
+.vn-gallery-item:nth-child(2) { animation-delay: 0.05s; }
+.vn-gallery-item:nth-child(3) { animation-delay: 0.1s; }
+.vn-gallery-item:nth-child(4) { animation-delay: 0.15s; }
+.vn-gallery-item:nth-child(5) { animation-delay: 0.2s; }
+.vn-gallery-item:nth-child(6) { animation-delay: 0.25s; }
+.vn-gallery-item:nth-child(7) { animation-delay: 0.3s; }
+.vn-gallery-item:nth-child(8) { animation-delay: 0.35s; }
+.vn-gallery-item:nth-child(n+9) { animation-delay: 0.4s; }
 
 /* ==========================================================================
    Gallery Item Wrapper & Title
@@ -170,21 +228,28 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    border-bottom: 1px solid rgba(26, 55, 96, 0.25);
+    padding-bottom: var(--vn-fluid-14-28);
+}
+
+.gallery-filter .gallery-item-wrapper {
+    border-bottom: 0;
+    padding-bottom: 0;
 }
 
 .gallery-item-title {
-    padding: 10px 0;
-    text-align: center;
-    font-size: 14px;
+    padding: var(--vn-fluid-14-28) 0 0;
+    text-align: left;
+    font-size: var(--vn-fs-18);
+    font-weight: 700;
     line-height: 1.4;
-    color: #333;
-    font-weight: 500;
+    color: #5a656f;
+    margin-bottom: 0;
 }
 
-.vn-item-image {
-    .vn-youtube-play-button {
-        display: none;
-    }
+/* Image container */
+.vn-item-image .vn-youtube-play-button {
+    display: none;
 }
 
 .image-inner {
@@ -192,34 +257,39 @@
     height: 100%;
 }
 
-.vn-gallery-item.vn-item-video {
-    .vn-youtube-play-button {
-        position: absolute;
-        z-index: 2;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: transform 0.3s ease;
-        width: clamp(4.2rem, 20.9059233449cqi, 14rem);
-        height: auto;
-        aspect-ratio: 1 / 1;
-        inset: 0;
-        margin: auto;
-    }
-
-    .btn-icon {
-        margin: 0;
-        width: 100%;
-        min-height: 100%;
-        height: 100%;
-        padding: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: rgba(255, 255, 255, 0.5);
-    }
+/* ==========================================================================
+   Video Items with Play Button
+   ========================================================================== */
+.vn-gallery-item.vn-item-video .vn-youtube-play-button {
+    position: absolute;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+    width: clamp(4.2rem, 20.9059233449cqi, 14rem);
+    height: auto;
+    aspect-ratio: 1 / 1;
+    inset: 0;
+    margin: auto;
 }
 
+.vn-gallery-item.vn-item-video .btn-icon {
+    margin: 0;
+    width: 100%;
+    min-height: 100%;
+    height: 100%;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+}
+
+.vn-gallery-item.vn-item-video:hover .vn-youtube-play-button {
+    transform: scale(1.1);
+}
 
 /* ==========================================================================
    Error Messages
@@ -227,17 +297,174 @@
 .vn-gallery-error {
     color: var(--vn-gallery-error-color);
     border: 1px solid var(--vn-gallery-error-color);
-    padding: 10px;
+    padding: 10px 15px;
     background: #fff;
     margin: 10px 0;
-    border-radius: var(--vn-gallery-border-radius);
+    border-radius: 4px;
+    font-size: 14px;
 }
 
 /* ==========================================================================
-   Magnific Popup Custom Styles
+   Button Gallery
    ========================================================================== */
+.button-gallery.button {
+    width: clamp(15rem, 11.66666667vw, 22.4rem);
+}
 
-/* Animation */
+/* ==========================================================================
+   Magnific Popup - Gallery Mode
+   ========================================================================== */
+.mfp-gallery {
+    --vn-mfp-unit-56: clamp(2.1rem, 2.9166666667vw, 5.6rem);
+    --vn-mfp-arrow-width: clamp(3.6rem, calc(2.15385rem + 1.7949vw), 5.6rem);
+    inset: 0;
+    overflow: hidden !important;
+    margin: auto;
+    max-width: 70%;
+    height: auto;
+}
+
+@media (max-width: 768px) {
+    .mfp-gallery {
+        max-width: 90%;
+    }
+}
+
+/* Container */
+.mfp-gallery .mfp-container {
+    inset: 0;
+    padding: 0;
+}
+
+.mfp-gallery .mfp-container::before {
+    content: none;
+}
+
+/* Content */
+.mfp-gallery .mfp-content {
+    margin: 0 auto;
+    width: 100%;
+    max-width: 100%;
+    inset: 50% 0 50% !important;
+    transform: translateY(-50%);
+}
+
+/* Figure and iframe */
+.mfp-gallery .mfp-iframe,
+.mfp-gallery .mfp-figure {
+    height: auto;
+    aspect-ratio: 47.3 / 31.532;
+    background-color: var(--vn-gallery-white);
+    padding: var(--vn-mfp-unit-56);
+    margin: 0 auto;
+}
+
+.mfp-gallery .mfp-iframe {
+    height: 100%;
+}
+
+.mfp-gallery .mfp-figure::after {
+    content: none;
+}
+
+/* Image */
+.mfp-gallery img.mfp-img {
+    max-height: 100% !important;
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    padding: 0;
+}
+
+/* Counter - Hidden in gallery mode */
+.mfp-gallery .mfp-counter {
+    display: none;
+}
+
+/* Bottom bar */
+.mfp-gallery .mfp-bottom-bar {
+    background-color: transparent;
+    padding: 0;
+}
+
+/* Title */
+.mfp-gallery .mfp-title {
+    text-align: left;
+    font-weight: 700;
+    font-size: var(--vn-fs-20);
+    color: var(--vn-gallery-primary-color);
+    padding: var(--vn-fluid-14-28) var(--vn-mfp-unit-56);
+    background-color: var(--vn-gallery-white);
+    letter-spacing: -0.025em;
+    word-wrap: break-word;
+    line-height: 1.4;
+}
+
+/* ==========================================================================
+   Magnific Popup - Navigation Arrows
+   ========================================================================== */
+.mfp-gallery .mfp-arrow {
+    width: var(--vn-mfp-arrow-width);
+    min-height: var(--vn-mfp-arrow-width);
+    height: auto;
+    aspect-ratio: 1;
+    color: var(--vn-gallery-primary-color);
+    background-color: var(--vn-gallery-secondary-color);
+    opacity: 0.8;
+    margin-top: calc(var(--vn-mfp-arrow-width) / 2 * -1);
+    mix-blend-mode: normal;
+    position: absolute;
+    top: 50%;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mfp-gallery .mfp-arrow::after {
+    content: none;
+}
+
+.mfp-gallery .mfp-arrow::before {
+    font-family: inherit;
+    border: 0;
+    margin: 0;
+    position: static;
+    width: auto;
+    height: auto;
+}
+
+.mfp-gallery .mfp-arrow:hover,
+.mfp-gallery .mfp-arrow:focus {
+    opacity: 1;
+}
+
+.mfp-gallery .mfp-arrow:active {
+    top: 50%;
+    margin-top: calc(var(--vn-mfp-arrow-width) / 2 * -1);
+}
+
+/* Left arrow */
+.mfp-gallery .mfp-arrow.mfp-arrow-left {
+    transform: rotate(180deg);
+    left: calc(var(--vn-mfp-unit-56) - var(--vn-mfp-arrow-width) / 2);
+}
+
+/* Right arrow */
+.mfp-gallery .mfp-arrow.mfp-arrow-right {
+    right: calc(var(--vn-mfp-unit-56) - var(--vn-mfp-arrow-width) / 2);
+}
+
+/* Arrow icon - Using Flatsome icon if available */
+.mfp-gallery .mfp-arrow .fb-icon-arrow::before {
+    content: '\ea04';
+}
+
+/* ==========================================================================
+   Magnific Popup - Fade Animation
+   ========================================================================== */
 .mfp-fade.mfp-bg {
     opacity: 0;
     transition: all 0.3s ease-out;
@@ -264,8 +491,11 @@
     opacity: 0;
 }
 
-/* Title styling */
-.mfp-title {
+/* ==========================================================================
+   Magnific Popup - Standalone Fallback Styles
+   (Used when not in .mfp-gallery context)
+   ========================================================================== */
+.mfp-wrap:not(.mfp-gallery) .mfp-title {
     text-align: center;
     padding: 15px 0 0;
     color: #f3f3f3;
@@ -273,22 +503,21 @@
     line-height: 1.4;
 }
 
-.mfp-title h3 {
+.mfp-wrap:not(.mfp-gallery) .mfp-title h3 {
     margin: 0 0 5px;
     font-size: 18px;
     font-weight: 600;
     color: #fff;
 }
 
-.mfp-title p {
+.mfp-wrap:not(.mfp-gallery) .mfp-title p {
     margin: 5px 0 0;
     font-size: 14px;
     color: #ccc;
     line-height: 1.5;
 }
 
-/* Bottom bar */
-.mfp-bottom-bar {
+.mfp-wrap:not(.mfp-gallery) .mfp-bottom-bar {
     position: absolute;
     bottom: 0;
     left: 0;
@@ -298,8 +527,7 @@
     pointer-events: none;
 }
 
-/* Counter styling */
-.mfp-counter {
+.mfp-wrap:not(.mfp-gallery) .mfp-counter {
     position: absolute;
     top: 0;
     right: 0;
@@ -314,8 +542,8 @@
     margin: 5px;
 }
 
-/* Arrow styling */
-.mfp-arrow {
+/* Standalone arrow styling */
+.mfp-wrap:not(.mfp-gallery) .mfp-arrow {
     position: absolute;
     opacity: 0.65;
     margin: 0;
@@ -327,16 +555,16 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-.mfp-arrow:active {
+.mfp-wrap:not(.mfp-gallery) .mfp-arrow:active {
     margin-top: -54px;
 }
 
-.mfp-arrow:hover,
-.mfp-arrow:focus {
+.mfp-wrap:not(.mfp-gallery) .mfp-arrow:hover,
+.mfp-wrap:not(.mfp-gallery) .mfp-arrow:focus {
     opacity: 1;
 }
 
-.mfp-arrow:after {
+.mfp-wrap:not(.mfp-gallery) .mfp-arrow::after {
     content: '';
     display: block;
     width: 0;
@@ -347,58 +575,79 @@
     margin-top: 35px;
     margin-left: 35px;
     border: medium inset transparent;
-}
-
-.mfp-arrow:after {
     border-top-width: 13px;
     border-bottom-width: 13px;
     top: 8px;
 }
 
-.mfp-arrow-left {
+.mfp-wrap:not(.mfp-gallery) .mfp-arrow-left {
     left: 0;
 }
 
-.mfp-arrow-left:after {
+.mfp-wrap:not(.mfp-gallery) .mfp-arrow-left::after {
     border-right: 17px solid #fff;
     margin-left: 31px;
 }
 
-.mfp-arrow-left:before {
+.mfp-wrap:not(.mfp-gallery) .mfp-arrow-left::before {
     margin-left: 25px;
     border-right: 27px solid #3f3f3f;
 }
 
-.mfp-arrow-right {
+.mfp-wrap:not(.mfp-gallery) .mfp-arrow-right {
     right: 0;
 }
 
-.mfp-arrow-right:after {
+.mfp-wrap:not(.mfp-gallery) .mfp-arrow-right::after {
     border-left: 17px solid #fff;
     margin-left: 39px;
 }
 
-.mfp-arrow-right:before {
+.mfp-wrap:not(.mfp-gallery) .mfp-arrow-right::before {
     border-left: 27px solid #3f3f3f;
 }
 
-/* Mobile adjustments */
+/* ==========================================================================
+   Mobile Adjustments
+   ========================================================================== */
 @media (max-width: 768px) {
-    .mfp-arrow {
+    .mfp-wrap:not(.mfp-gallery) .mfp-arrow {
         width: 60px;
         height: 80px;
     }
 
-    .mfp-arrow:after {
+    .mfp-wrap:not(.mfp-gallery) .mfp-arrow::after {
         border-top-width: 10px;
         border-bottom-width: 10px;
     }
 
-    .mfp-title h3 {
+    .mfp-wrap:not(.mfp-gallery) .mfp-title h3 {
         font-size: 16px;
     }
 
-    .mfp-title p {
+    .mfp-wrap:not(.mfp-gallery) .mfp-title p {
         font-size: 13px;
+    }
+}
+
+/* ==========================================================================
+   Print Styles
+   ========================================================================== */
+@media print {
+    .vn-gallery-wrapper {
+        page-break-inside: avoid;
+    }
+
+    .vn-gallery-filters {
+        display: none;
+    }
+
+    .vn-gallery-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+
+    .vn-gallery-item:hover img {
+        transform: none;
     }
 }

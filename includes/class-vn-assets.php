@@ -52,11 +52,17 @@ class VN_Assets {
 	 * Constructor.
 	 */
 	private function __construct() {
-		// Register assets.
-		add_action( 'wp_enqueue_scripts', array( $this, 'register_assets' ) );
+		// Register assets early.
+		add_action( 'wp_enqueue_scripts', array( $this, 'register_assets' ), 5 );
 		
 		// Conditionally enqueue assets.
 		add_action( 'wp_footer', array( $this, 'conditional_enqueue' ), 5 );
+
+		// Always load assets in UX Builder context for live preview.
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_for_ux_builder' ), 100 );
+		
+		// Also hook into init for UX Builder AJAX requests.
+		add_action( 'init', array( $this, 'maybe_enqueue_for_ajax' ) );
 	}
 
 	/**
@@ -64,6 +70,52 @@ class VN_Assets {
 	 */
 	public static function enqueue_scripts(): void {
 		self::$should_enqueue = true;
+		
+		// In UX Builder AJAX context, enqueue immediately.
+		if ( defined( 'UX_BUILDER_DOING_AJAX' ) && UX_BUILDER_DOING_AJAX ) {
+			wp_enqueue_style( 'vn-lightbox-gallery' );
+			wp_enqueue_script( 'vn-lightbox-gallery' );
+		}
+	}
+
+	/**
+	 * Check if currently in UX Builder context.
+	 *
+	 * @return bool True if UX Builder is active.
+	 */
+	private function is_ux_builder_context(): bool {
+		// Check for UX Builder AJAX request.
+		if ( defined( 'UX_BUILDER_DOING_AJAX' ) && UX_BUILDER_DOING_AJAX ) {
+			return true;
+		}
+
+		// Check for UX Builder iframe.
+		if ( function_exists( 'ux_builder_is_active' ) && ux_builder_is_active() ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Maybe enqueue assets for UX Builder AJAX request.
+	 */
+	public function maybe_enqueue_for_ajax(): void {
+		if ( defined( 'UX_BUILDER_DOING_AJAX' ) && UX_BUILDER_DOING_AJAX ) {
+			$this->register_assets();
+			wp_enqueue_style( 'vn-lightbox-gallery' );
+			wp_enqueue_script( 'vn-lightbox-gallery' );
+		}
+	}
+
+	/**
+	 * Enqueue assets when in UX Builder context.
+	 */
+	public function enqueue_for_ux_builder(): void {
+		if ( $this->is_ux_builder_context() ) {
+			wp_enqueue_style( 'vn-lightbox-gallery' );
+			wp_enqueue_script( 'vn-lightbox-gallery' );
+		}
 	}
 
 	/**

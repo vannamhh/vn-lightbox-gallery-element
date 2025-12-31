@@ -66,14 +66,18 @@ class VN_Shortcode {
 	 * @return string HTML output.
 	 */
 	public function render_shortcode( $atts ): string {
-		// Parse attributes.
+		// Parse attributes with responsive column defaults.
 		$atts = shortcode_atts(
 			array(
-				'field'      => self::METABOX_FIELD_ID,
-				'gallery_id' => 0,
-				'filters'    => 'true',
-				'show_title' => 'false',
-				'class'      => '',
+				'field'       => self::METABOX_FIELD_ID,
+				'gallery_id'  => 0,
+				'filters'     => 'true',
+				'show_title'  => 'false',
+				'col_spacing' => 'normal',
+				'columns'     => '4',
+				'columns__md' => '',
+				'columns__sm' => '',
+				'class'       => '',
 			),
 			$atts,
 			'vn_gallery'
@@ -84,8 +88,14 @@ class VN_Shortcode {
 		$show_filters = rest_sanitize_boolean( $atts['filters'] );
 		$show_title   = rest_sanitize_boolean( $atts['show_title'] );
 
-		// Validate gallery ID.
+		// Check for UX Builder preview context.
+		$is_ux_builder = $this->is_ux_builder_context();
+
+		// Validate gallery ID - show placeholder in UX Builder, error on frontend.
 		if ( $gallery_id <= 0 ) {
+			if ( $is_ux_builder ) {
+				return $this->render_ux_builder_placeholder( $atts );
+			}
 			return $this->render_error( __( 'Lỗi VN Gallery: Vui lòng chọn gallery cần hiển thị.', 'vn-lightbox-gallery' ) );
 		}
 
@@ -99,6 +109,9 @@ class VN_Shortcode {
 				)
 			);
 		}
+
+		// Parse layout attributes.
+		$layout_config = $this->parse_layout_attributes( $atts );
 
 		// Sanitize multiple classes separated by spaces.
 		$custom_classes = array();
@@ -156,9 +169,16 @@ class VN_Shortcode {
 			$this->render_filters();
 		}
 
+		// Build grid classes with Flatsome responsive columns.
+		$grid_classes = $this->build_grid_classes( $layout_config );
+
 		// Render gallery grid.
 		$gallery_dom_id = 'vn-gallery-' . esc_attr( $gallery_id . '-' . $field_id );
-		echo '<div class="vn-gallery-grid" id="' . esc_attr( $gallery_dom_id ) . '">';
+		printf(
+			'<div class="%s" id="%s">',
+			esc_attr( implode( ' ', $grid_classes ) ),
+			esc_attr( $gallery_dom_id )
+		);
 
 		// Debug: Log gallery data for admins.
 		$this->log_gallery_data( $gallery_id, $field_id, $gallery_data );
@@ -171,6 +191,68 @@ class VN_Shortcode {
 		echo '</div>'; // .vn-gallery-wrapper.
 
 		return ob_get_clean();
+	}
+
+	/**
+	 * Parse layout attributes from shortcode.
+	 *
+	 * @param array $atts Shortcode attributes.
+	 * @return array Parsed layout configuration.
+	 */
+	private function parse_layout_attributes( array $atts ): array {
+		$columns    = absint( $atts['columns'] ) > 0 ? absint( $atts['columns'] ) : 4;
+		$columns_md = ! empty( $atts['columns__md'] ) ? absint( $atts['columns__md'] ) : 0;
+		$columns_sm = ! empty( $atts['columns__sm'] ) ? absint( $atts['columns__sm'] ) : 0;
+
+		// Apply Flatsome fallback logic for responsive columns.
+		if ( 0 === $columns_md && $columns > 3 ) {
+			$columns_md = 3;
+		} elseif ( 0 === $columns_md ) {
+			$columns_md = $columns;
+		}
+
+		if ( 0 === $columns_sm && $columns > 2 ) {
+			$columns_sm = 2;
+		} elseif ( 0 === $columns_sm ) {
+			$columns_sm = min( $columns, 2 );
+		}
+
+		// Sanitize col_spacing.
+		$valid_spacings = array( 'collapse', 'xsmall', 'small', 'normal', 'large' );
+		$col_spacing    = in_array( $atts['col_spacing'], $valid_spacings, true )
+			? $atts['col_spacing']
+			: 'normal';
+
+		return array(
+			'columns'     => $columns,
+			'columns__md' => $columns_md,
+			'columns__sm' => $columns_sm,
+			'col_spacing' => $col_spacing,
+		);
+	}
+
+	/**
+	 * Build grid CSS classes based on layout configuration.
+	 *
+	 * Uses Flatsome's responsive column class pattern for consistency.
+	 *
+	 * @param array $config Layout configuration.
+	 * @return array Array of CSS classes.
+	 */
+	private function build_grid_classes( array $config ): array {
+		$classes = array( 'vn-gallery-grid', 'row' );
+
+		// Add column spacing class (Flatsome pattern: row-{spacing}).
+		if ( 'normal' !== $config['col_spacing'] ) {
+			$classes[] = 'row-' . $config['col_spacing'];
+		}
+
+		// Add responsive column classes (Flatsome pattern).
+		$classes[] = 'large-columns-' . $config['columns'];
+		$classes[] = 'medium-columns-' . $config['columns__md'];
+		$classes[] = 'small-columns-' . $config['columns__sm'];
+
+		return $classes;
 	}
 
 
@@ -493,5 +575,71 @@ class VN_Shortcode {
 		}
 
 		return $public_facing ? '' : '<!-- ' . esc_html( $message ) . ' -->';
+	}
+
+	/**
+	 * Check if currently in UX Builder context.
+	 *
+	 * @return bool True if UX Builder is active.
+	 */
+	private function is_ux_builder_context(): bool {
+		// Check for UX Builder AJAX request.
+		if ( defined( 'UX_BUILDER_DOING_AJAX' ) && UX_BUILDER_DOING_AJAX ) {
+			return true;
+		}
+
+		// Check for UX Builder iframe.
+		if ( function_exists( 'ux_builder_is_active' ) && ux_builder_is_active() ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Render placeholder preview for UX Builder when no gallery is selected.
+	 *
+	 * Displays a visual grid placeholder with sample items to show layout.
+	 *
+	 * @param array $atts Shortcode attributes.
+	 * @return string Placeholder HTML.
+	 */
+	private function render_ux_builder_placeholder( array $atts ): string {
+		// Parse layout for grid classes.
+		$layout_config = $this->parse_layout_attributes( $atts );
+		$grid_classes  = $this->build_grid_classes( $layout_config );
+
+		// Signal assets need to be loaded.
+		VN_Assets::enqueue_scripts();
+
+		ob_start();
+		?>
+		<div class="vn-gallery-wrapper vn-gallery-placeholder">
+			<div class="vn-gallery-placeholder-notice" style="padding: 12px 16px; background: #f0f6fc; border: 1px solid #c3c4c7; border-radius: 4px; margin-bottom: 16px;">
+				<span style="display: flex; align-items: center; gap: 8px; color: #1d2327;">
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+						<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="#2271b1"/>
+					</svg>
+					<?php esc_html_e( 'VN Gallery: Chọn một gallery từ panel bên trái để hiển thị', 'vn-lightbox-gallery' ); ?>
+				</span>
+			</div>
+			<div class="<?php echo esc_attr( implode( ' ', $grid_classes ) ); ?>">
+				<?php
+				// Render placeholder items to show grid layout.
+				$placeholder_count = absint( $layout_config['columns'] );
+				for ( $i = 0; $i < $placeholder_count; $i++ ) :
+					?>
+					<div class="col">
+						<div class="vn-gallery-item vn-gallery-item-placeholder" style="aspect-ratio: 4/3; background: linear-gradient(135deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); display: flex; align-items: center; justify-content: center; border-radius: 4px;">
+							<svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity: 0.3;">
+								<path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" fill="#666"/>
+							</svg>
+						</div>
+					</div>
+				<?php endfor; ?>
+			</div>
+		</div>
+		<?php
+		return ob_get_clean();
 	}
 }
