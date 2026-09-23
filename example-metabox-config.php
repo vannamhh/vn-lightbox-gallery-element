@@ -7,6 +7,11 @@
  * @package VN_Lightbox_Gallery
  */
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 add_filter( 'rwmb_meta_boxes', 'vn_gallery_register_metabox' );
 
 /**
@@ -19,7 +24,7 @@ function vn_gallery_register_metabox( $meta_boxes ) {
 	$meta_boxes[] = array(
 		'id'         => 'vn_gallery_metabox',
 		'title'      => __( 'VN Gallery', 'vn-lightbox-gallery' ),
-		'post_types' => array( 'page', 'post' ), // Chỉnh sửa theo nhu cầu.
+		'post_types' => array( 'gallery' ), // Plugin chỉ đọc dữ liệu từ post type 'gallery'.
 		'context'    => 'normal',
 		'priority'   => 'high',
 		'fields'     => array(
@@ -53,17 +58,24 @@ function vn_gallery_register_metabox( $meta_boxes ) {
 						'max_file_uploads' => 1,
 						'max_status'       => false,
 						'image_size'       => 'thumbnail',
+						'visible'          => array( 'item_type', '=', 'image' ),
 					),
 					// Video URL.
 					array(
-						'id'      => 'item_url',
+						'id'      => 'item_video_url',
 						'name'    => __( 'Video URL', 'vn-lightbox-gallery' ),
 						'type'    => 'url',
-						'desc'    => __( 'URL của YouTube hoặc Vimeo (chỉ hiển thị khi chọn loại Video)', 'vn-lightbox-gallery' ),
-						'visible' => array(
-							'when'     => array( array( 'item_type', '=', 'video' ) ),
-							'relation' => 'or',
-						),
+						'desc'    => __( 'URL của YouTube hoặc Vimeo', 'vn-lightbox-gallery' ),
+						'visible' => array( 'item_type', '=', 'video' ),
+					),
+					// Video Thumbnail (optional, fallback: YouTube/Vimeo thumbnail).
+					array(
+						'id'               => 'item_thumbnail',
+						'name'             => __( 'Thumbnail video', 'vn-lightbox-gallery' ),
+						'type'             => 'image_advanced',
+						'max_file_uploads' => 1,
+						'max_status'       => false,
+						'visible'          => array( 'item_type', '=', 'video' ),
 					),
 					// Item Title.
 					array(
@@ -90,47 +102,21 @@ function vn_gallery_register_metabox( $meta_boxes ) {
 /**
  * HƯỚNG DẪN SỬ DỤNG:
  *
- * 1. Copy toàn bộ code này vào file functions.php của theme
- *    HOẶC tạo file mới trong thư mục theme, ví dụ: inc/metabox-config.php
- *    và require nó trong functions.php:
- *    require_once get_template_directory() . '/inc/metabox-config.php';
+ * 1. Đăng ký post type 'gallery' (MB Custom Post Type) nếu chưa có.
  *
- * 2. Sau khi thêm code, vào trang "Edit Page" hoặc "Edit Post"
- *    Bạn sẽ thấy metabox "VN Gallery" xuất hiện
+ * 2. Copy code này vào functions.php của theme (hoặc một file riêng được require),
+ *    hoặc tạo field group tương đương bằng MB Builder.
  *
- * 3. Thêm các item vào gallery:
- *    - Chọn loại: Hình ảnh hoặc Video
- *    - Upload hình ảnh (bắt buộc cho cả image và video - dùng làm thumbnail)
- *    - Nhập Video URL (nếu chọn loại Video)
- *    - Nhập tiêu đề và mô tả
+ * 3. Tạo một Gallery mới và thêm item:
+ *    - Hình ảnh: chọn loại "Hình ảnh" và upload ảnh.
+ *    - Video: chọn loại "Video", nhập URL YouTube/Vimeo; thumbnail là tùy chọn
+ *      (để trống sẽ tự lấy thumbnail từ YouTube/Vimeo).
  *
- * 4. Lưu trang/bài viết
- *
- * 5. Sử dụng trong UX Builder hoặc shortcode:
- *    - Field ID là: vn_gallery_items
- *    - Trong UX Builder: Thêm element "VN Gallery" và nhập "vn_gallery_items" vào ô "MetaBox Field ID"
- *    - Shortcode: [vn_gallery field="vn_gallery_items"]
- *
- * TÙY CHỈNH:
- *
- * - Thay đổi post types:
- *   Dòng 28: 'post_types' => array( 'page', 'post', 'your_custom_post_type' ),
- *
- * - Thay đổi Field ID chính:
- *   Dòng 32: 'id' => 'vn_gallery_items', // Đổi thành ID mong muốn
- *   LƯU Ý: Phải sử dụng cùng ID này trong UX Builder/shortcode
- *
- * - Thêm field mới:
- *   Thêm vào mảng 'fields' (sau dòng 37)
- *   VÍ DỤ:
- *   array(
- *       'id'   => 'item_custom_field',
- *       'name' => 'Custom Field',
- *       'type' => 'text',
- *   ),
+ * 4. Hiển thị: thêm element "VN Gallery" trong UX Builder và chọn gallery,
+ *    hoặc dùng shortcode: [vn_gallery gallery_id="123"]
  *
  * QUAN TRỌNG:
- * - KHÔNG được thay đổi tên các field con:
- *   item_type, item_image, item_url, item_title, item_description
- *   Plugin phụ thuộc vào các tên field này!
+ * - KHÔNG đổi ID của group (vn_gallery_items) và các field con:
+ *   item_type, item_image, item_video_url, item_thumbnail, item_title, item_description
+ *   Plugin phụ thuộc vào các ID này (xem hằng số trong VN_Shortcode).
  */

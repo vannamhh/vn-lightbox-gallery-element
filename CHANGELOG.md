@@ -2,6 +2,34 @@
 
 Tất cả thay đổi đáng chú ý của plugin VN Lightbox Gallery Element sẽ được ghi chép tại đây.
 
+## [4.6.0] - 2026-09-23
+
+### Security (Bảo mật)
+- Không hiển thị gallery ở trạng thái draft/private/có mật khẩu cho người không có quyền xem
+- `debug.php`: escape output `print_r`/`var_export` (tránh stored XSS vào trang admin), thêm guard `ABSPATH`, sanitize `$_GET`, chỉ load khi `WP_DEBUG`
+- Bỏ HTML comment chứa thông tin lỗi hiển thị cho khách; lỗi chỉ hiện cho admin
+- `example-metabox-config.php`: thêm guard `ABSPATH`
+
+### Fixed (Sửa lỗi)
+- Text domain không bao giờ được load (hook `plugins_loaded` được thêm bên trong chính `plugins_loaded`) → chuyển sang `init`
+- Mũi tên lightbox: thừa `</button>` và trùng `id="vnMenuPrev"`
+- Callback `markupParse` đọc sai `item.description` (phải là `item.data.description`)
+- `<button>` lồng trong `<a>` (HTML không hợp lệ) → `<span>`; nút filter có `type="button"` + `aria-pressed`
+- Trùng DOM id khi cùng một gallery xuất hiện 2 lần trên trang
+- Nhận diện thêm link YouTube `shorts/`, `embed/`, `live/`, `watch?...&v=`
+- `example-metabox-config.php` đồng bộ với field thật (`item_video_url`, `item_thumbnail`, post type `gallery`)
+
+### Performance (Hiệu năng)
+- Cache thumbnail Vimeo bằng transient (trước đây gọi HTTP API mỗi lần render trang)
+- Ảnh dùng `wp_get_attachment_image()` → có `srcset`/`sizes` theo số cột
+- CSS/JS được enqueue trong `<head>` khi trang có shortcode (tránh FOUC)
+- JS: 1 listener capture-phase thay cho `setTimeout(500)` + bind lại từng link sau mỗi lần filter
+- Bỏ ghi `error_log` + `print_r` mỗi lần admin xem trang
+
+### Removed (Dọn dẹp)
+- Code trùng lặp: `is_ux_builder_context()` (2 class), 3 bản copy xử lý bottom bar trong JS, inline style trùng CSS
+- Code chết: `cleanup()`/`destroy` Magnific, `$should_enqueue` + hook `wp_footer`, `maybe_enqueue_for_ajax`, CSS `:not(.mfp-gallery)` (ảnh hưởng popup khác của Flatsome), animation-delay không có animation, biến CSS không dùng, `.button-gallery` (đã có trong theme), `data-title`
+
 ## [4.2.0] - 2024-12-22
 
 ### Added (Thêm mới)

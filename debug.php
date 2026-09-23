@@ -2,12 +2,18 @@
 /**
  * Debug helper for VN Lightbox Gallery Element.
  *
- * Access: Add ?vn_gallery_debug=1 to any post/page URL to see debug info.
+ * Access: Add ?vn_gallery_debug=1 to a gallery post URL to see debug info.
+ * Only loaded when WP_DEBUG is enabled.
  *
  * @package VN_Lightbox_Gallery
  */
 
 declare(strict_types=1);
+
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 add_action( 'template_redirect', 'vn_gallery_debug_output' );
 
@@ -15,8 +21,9 @@ add_action( 'template_redirect', 'vn_gallery_debug_output' );
  * Output debug information about gallery data.
  */
 function vn_gallery_debug_output(): void {
-	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Debug tool for admins only, read-only operation
-	if ( ! isset( $_GET['vn_gallery_debug'] ) || '1' !== $_GET['vn_gallery_debug'] || ! current_user_can( 'manage_options' ) ) {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Debug tool for admins only, read-only operation.
+	$debug = isset( $_GET['vn_gallery_debug'] ) ? sanitize_text_field( wp_unslash( $_GET['vn_gallery_debug'] ) ) : '';
+	if ( '1' !== $debug || ! current_user_can( 'manage_options' ) ) {
 		return;
 	}
 
@@ -25,8 +32,8 @@ function vn_gallery_debug_output(): void {
 		wp_die( esc_html__( 'No post ID found. Please access this on a post/page.', 'vn-lightbox-gallery' ) );
 	}
 
-	$field_id = sanitize_key( 'vn_gallery_items' );
-	
+	$field_id = VN_Shortcode::METABOX_FIELD_ID;
+
 	// Try to get data using rwmb_get_value.
 	$data = function_exists( 'rwmb_get_value' )
 		? rwmb_get_value( $field_id, array( 'object_id' => $post_id ) )
@@ -70,19 +77,19 @@ function vn_gallery_debug_output(): void {
 			<p><strong>Data Type:</strong> <?php echo esc_html( gettype( $data ) ); ?></p>
 			<p><strong>Is Empty:</strong> <?php echo empty( $data ) ? 'Yes' : 'No'; ?></p>
 			<p><strong>Is Array:</strong> <?php echo is_array( $data ) ? 'Yes' : 'No'; ?></p>
-			<p><strong>Item Count:</strong> <?php echo is_array( $data ) ? count( $data ) : 'N/A'; ?></p>
+			<p><strong>Item Count:</strong> <?php echo is_array( $data ) ? absint( count( $data ) ) : 'N/A'; ?></p>
 		</div>
 
-		<h2>Raw Data Structure (var_dump)</h2>
-		<pre><?php var_dump( $data ); ?></pre>
+		<h2>Raw Data Structure</h2>
+		<pre><?php echo esc_html( var_export( $data, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export ?></pre>
 
 		<?php if ( is_array( $data ) && ! empty( $data ) ) : ?>
 			<h2>First Item (print_r)</h2>
-			<pre><?php print_r( $data[0] ); ?></pre>
+			<pre><?php echo esc_html( print_r( $data[0], true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r ?></pre>
 			
 			<?php if ( isset( $data[0]['item_image'] ) ) : ?>
 				<h2>First Item - Image Field Structure</h2>
-				<pre><?php print_r( $data[0]['item_image'] ); ?></pre>
+				<pre><?php echo esc_html( print_r( $data[0]['item_image'], true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r ?></pre>
 			<?php endif; ?>
 		<?php else : ?>
 			<div class="info warning">

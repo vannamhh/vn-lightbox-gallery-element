@@ -62,6 +62,7 @@ class VN_UX_Builder {
 			'vn_gallery',
 			array(
 				'name'      => __( 'VN Gallery', 'vn-lightbox-gallery' ),
+				// phpcs:ignore WordPress.WP.I18n.MissingArgDomain -- Must match Flatsome's own category label.
 				'category'  => __( 'Content' ),
 				'thumbnail' => $this->get_element_thumbnail(),
 				'wrap'      => false,
@@ -172,28 +173,22 @@ class VN_UX_Builder {
 			'' => __( '-- Gallery hiện tại --', 'vn-lightbox-gallery' ),
 		);
 
-		// Query directly from 'gallery' post type - optimized & clean.
-		$query = new WP_Query(
+		// get_posts() does not touch the global $post (no the_post()/wp_reset_postdata() needed).
+		$posts = get_posts(
 			array(
-				'post_type'              => 'gallery',
+				'post_type'              => VN_Shortcode::POST_TYPE,
 				'posts_per_page'         => 100,
 				'orderby'                => 'title',
 				'order'                  => 'ASC',
 				'post_status'            => 'publish',
-				'no_found_rows'          => true,
 				'update_post_meta_cache' => false,
 				'update_post_term_cache' => false,
 			)
 		);
 
-		if ( $query->have_posts() ) {
-			while ( $query->have_posts() ) {
-				$query->the_post();
-				// Use raw title to prevent WordPress from converting -- to em dash (&#8211;).
-				$raw_title                 = get_post_field( 'post_title', get_the_ID(), 'raw' );
-				$galleries[ get_the_ID() ] = $raw_title . ' (ID: ' . get_the_ID() . ')';
-			}
-			wp_reset_postdata();
+		foreach ( $posts as $post ) {
+			// Raw post_title: avoids wptexturize converting -- to an en dash (&#8211;).
+			$galleries[ $post->ID ] = $post->post_title . ' (ID: ' . $post->ID . ')';
 		}
 
 		return $galleries;

@@ -3,7 +3,7 @@
  * Plugin Name: VN Lightbox Gallery Element
  * Plugin URI: https://wpmasterynow.com/
  * Description: Custom Flatsome UX Builder element để hiển thị gallery với lightbox từ dữ liệu MetaBox
- * Version: 4.5.0
+ * Version: 4.6.0
  * Author: VN
  * Author URI: https://wpmasterynow.com/
  * Text Domain: vn-lightbox-gallery
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'VN_LIGHTBOX_GALLERY_VERSION', '4.5.0' );
+define( 'VN_LIGHTBOX_GALLERY_VERSION', '4.6.0' );
 define( 'VN_LIGHTBOX_GALLERY_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'VN_LIGHTBOX_GALLERY_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'VN_LIGHTBOX_GALLERY_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -55,49 +55,41 @@ class VN_Lightbox_Gallery_Element {
 	 * Constructor.
 	 */
 	private function __construct() {
-		// Load required files.
 		$this->load_dependencies();
-		
-		// Initialize components.
-		$this->init_components();
-		
-		// Load plugin text domain.
-		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
+
+		VN_UX_Builder::get_instance();
+		VN_Shortcode::get_instance();
+		VN_Assets::get_instance();
+
+		// Translations must be loaded on `init` or later (WP 6.7+).
+		add_action( 'init', array( $this, 'load_textdomain' ) );
 	}
 
 	/**
 	 * Load required dependencies.
 	 */
 	private function load_dependencies(): void {
-		// Load core classes.
 		require_once VN_LIGHTBOX_GALLERY_PLUGIN_DIR . 'includes/class-vn-ux-builder.php';
 		require_once VN_LIGHTBOX_GALLERY_PLUGIN_DIR . 'includes/class-vn-shortcode.php';
 		require_once VN_LIGHTBOX_GALLERY_PLUGIN_DIR . 'includes/class-vn-assets.php';
-		
-		// Load debug helper (only active with ?vn_gallery_debug=1 for admins).
-		if ( file_exists( VN_LIGHTBOX_GALLERY_PLUGIN_DIR . 'debug.php' ) ) {
+
+		// Debug helper (?vn_gallery_debug=1 for admins) is only available on development sites.
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 			require_once VN_LIGHTBOX_GALLERY_PLUGIN_DIR . 'debug.php';
 		}
 	}
 
 	/**
-	 * Initialize plugin components.
+	 * Check if the current request comes from Flatsome UX Builder (iframe, editor or AJAX preview).
+	 *
+	 * @return bool
 	 */
-	private function init_components(): void {
-		// Initialize UX Builder integration.
-		if ( class_exists( 'VN_UX_Builder' ) ) {
-			VN_UX_Builder::get_instance();
+	public static function is_ux_builder(): bool {
+		if ( defined( 'UX_BUILDER_DOING_AJAX' ) && UX_BUILDER_DOING_AJAX ) {
+			return true;
 		}
-		
-		// Initialize shortcode handler.
-		if ( class_exists( 'VN_Shortcode' ) ) {
-			VN_Shortcode::get_instance();
-		}
-		
-		// Initialize assets manager.
-		if ( class_exists( 'VN_Assets' ) ) {
-			VN_Assets::get_instance();
-		}
+
+		return function_exists( 'ux_builder_is_active' ) && ux_builder_is_active();
 	}
 
 	/**
